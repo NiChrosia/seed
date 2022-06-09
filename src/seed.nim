@@ -1,3 +1,3 @@
-## Public interface to you library.
+## Public interface to your library.
 
 import seed/common
