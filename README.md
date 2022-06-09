@@ -1,7 +1,5 @@
-# You can use this nim template to jump start your nim library or project.
+# Seed
 
-This template includes:
-* MIT licence
-* src directory and a private common.nim
-* test directory
-* GitHub Actions to run the tests on GitHub
+A game framework written in Nim.
+
+Currently a work-in-progress due to lack of rendering knowledge, and thus will grow as I learn more OpenGL.

@@ -1,1 +1,1 @@
-## Include an example on how to use your library
+## Insert a few usage examples, such as rendering shapes & textures, playing sounds, and other essential game functions.

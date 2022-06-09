@@ -1,3 +1,3 @@
-## Put your tests here.
+import seed
 
-import nimtemplate
+assert true
