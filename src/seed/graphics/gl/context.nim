@@ -1,4 +1,4 @@
-import types, kinds, opengl, tables
+import shared, kinds, configuration, buffers, shaders, opengl, tables
 
 type
     # essentially an emulator of bound objects

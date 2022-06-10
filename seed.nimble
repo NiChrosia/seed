@@ -7,5 +7,6 @@ srcDir = "src"
 
 requires [
     "nim >= 1.2.2",
-    "windy >= 0.0.0"
+    "windy >= 0.0.0",
+    "neo >= 0.3.2"
 ]

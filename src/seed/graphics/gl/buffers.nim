@@ -1,4 +1,9 @@
-import types, kinds, opengl
+import shared, kinds, opengl
+
+type
+    ## An object for transferring data en-masse from the CPU to the GPU.
+    Buffer* = object of Handled[uint32]
+        kind*: BufferKind
 
 # initialization
 

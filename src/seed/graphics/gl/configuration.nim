@@ -1,4 +1,8 @@
-import types, opengl
+import shared, opengl
+
+type
+    ## An object describing how vertex attributes are stored in a buffer.
+    VertexArray* = object of Handled[uint32]
 
 # initialization
 
