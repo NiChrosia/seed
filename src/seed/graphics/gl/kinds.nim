@@ -8,22 +8,31 @@ type
         vertexShader, fragmentShader
 
     DrawKind* = enum
-        staticDraw
+        # set once, used a few times
+        streamDraw,
+        # set once, used many times
+        staticDraw,
+        # set many times, used many times
+        dynamicDraw
 
-template declareConversion(kindType, enumType: typed, table: untyped) = 
+template declareConversion(kindType, enumType: typed, tuples: untyped) =
+    let table = tuples.toTable
+
     proc asEnum*(kind: kindType): enumType = 
         result = table[kind]
 
 declareConversion(BufferKind, GLenum, {
     vertexBuffer: GL_ARRAY_BUFFER,
     elementBuffer: GL_ELEMENT_ARRAY_BUFFER
-}.toTable)
+})
 
 declareConversion(ShaderKind, GLenum, {
     vertexShader: GL_VERTEX_SHADER,
     fragmentShader: GL_FRAGMENT_SHADER
-}.toTable)
+})
 
 declareConversion(DrawKind, GlEnum, {
-    staticDraw: GL_STATIC_DRAW
-}.toTable)
+    streamDraw: GL_STREAM_DRAW,
+    staticDraw: GL_STATIC_DRAW,
+    dynamicDraw: GL_DYNAMIC_DRAW
+})
