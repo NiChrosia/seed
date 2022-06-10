@@ -1,4 +1,4 @@
-import types, opengl, tables
+import types, kinds, opengl, tables
 
 type
     # essentially an emulator of bound objects
@@ -19,9 +19,9 @@ template bindObject(item, function: typed) =
 
 template bindTypedObject(item, defaultKind, function: typed) = 
     if item == nil:
-        function(defaultKind, 0)
+        function(defaultKind.asEnum, 0)
     else:
-        function(item.kind, item.handle)
+        function(item.kind.asEnum, item.handle)
 
 # getter & setter declaration
 template declareProperty(name: untyped, itemType, bindFunction: typed) = 
@@ -48,7 +48,7 @@ template declareBufferProperty(name: untyped, defaultKind: typed) =
 # getters & setters
 declareProperty(vertexArray, ref VertexArray, glBindVertexArray)
 
-declareBufferProperty(vertexBuffer, types.vertexBuffer)
-declareBufferProperty(elementBuffer, types.elementBuffer)
+declareBufferProperty(vertexBuffer, BufferKind.vertexBuffer)
+declareBufferProperty(elementBuffer, BufferKind.elementBuffer)
 
 declareProperty(program, ref ShaderProgram, glUseProgram)

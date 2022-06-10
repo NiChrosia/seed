@@ -1,9 +1,9 @@
-import types, opengl
+import types, kinds, opengl
 
 # initialization
 
 proc newBuffer*(kind: BufferKind): Buffer =
-    let handle = register[uint32](glCreateBuffers)
+    let handle = register(glCreateBuffers)
     result = Buffer(handle: handle)
 
 proc newVertexBuffer*(): Buffer = 
