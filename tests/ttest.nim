@@ -1,3 +1,0 @@
-import seed
-
-assert true
