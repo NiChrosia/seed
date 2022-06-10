@@ -1,29 +1,26 @@
+import opengl
+
 type
-    GlKind[E] = object of RootObj
+    GlKind*[E] = object of RootObj
         asEnum*: E
 
-    BufferKind* = object of GlKind[uint32]
-    ShaderKind* = object of GlKind[uint32]
+    BufferKind* = object of GlKind[GLenum]
+    ShaderKind* = object of GlKind[GLenum]
+    DrawKind* = object of GlKind[GLenum]
 
 type
-    # handles and registration (such as glCreateBuffers, and the pointer accepted)
-
-    IndirectRegister[H: SomeInteger] = proc(count: int, handle: ptr H)
-    KindRegister[E, H: SomeInteger] = proc(kind: E): H
-    Register[H: SomeInteger] = proc(): H
-
     Handled[H: SomeInteger] = object of RootObj
         handle*: H
-        register*: Register[H]
+        register*: proc(): H
+
+    # configuration
+
+    VertexArray* = object of Handled[uint32]
 
     # buffers
 
-    Buffer = object of Handled[uint32]
+    Buffer* = object of Handled[uint32]
         kind*: BufferKind
-
-    VertexBuffer* = object of Buffer
-
-    ElementBuffer* = object of Buffer
 
     # shaders
 
@@ -40,25 +37,23 @@ type
     ShaderProgram* = object of Linked
         vertex, fragment: Shader
 
-#[ TODO uncomment once gl is added as a dependency
-const
-    vertexBuffer = BufferKind(asEnum: GL_ARRAY_BUFFER)
-    elementBuffer = BufferKind(asEnum: GL_ELEMENT_BUFFER)
+# declarations via 'let' because you can't properly create enums with fields
+let
+    vertexBuffer* = BufferKind(asEnum: GL_ARRAY_BUFFER)
+    elementBuffer* = BufferKind(asEnum: GL_ELEMENT_ARRAY_BUFFER)
 
-    vertexShader = ShaderKind(asEnum: GL_VERTEX_SHADER)
-    fragmentShader = ShaderKind(asEnum: GL_FRAGMENT_SHADER)
-]#
+    vertexShader* = ShaderKind(asEnum: GL_VERTEX_SHADER)
+    fragmentShader* = ShaderKind(asEnum: GL_FRAGMENT_SHADER)
 
-proc convert*[H: SomeInteger](register: IndirectRegister[H]): Register[H] =
-    ## Convert an indirect registration proc to a direct one for more convenient/modern manual registration.
-    
-    # 'result = ' is necessary to make it be considered an expression
-    result = proc() = 
-        var handle: H
-        register(1, addr handle)
-        return handle
+    staticDraw* = DrawKind(asEnum: GL_STATIC_DRAW)
 
-proc convert*[E, H: SomeInteger, K: GlKind[E]](kind: K, register: KindRegister[E, H]): Register[H] =
-    ## Similarly, but with a registration proc requiring a type, like glCreateShader.
-    result = proc() = 
-        register(kind.asEnum)
+converter toEnum*[E](kind: GlKind[E]): E = 
+    result = kind.asEnum
+
+proc register*[H: SomeInteger](function: proc(count: int32, handles: ptr H) {.stdcall.}): H = 
+    var handle: H
+    function(1, addr handle)
+    result = handle
+
+proc register*[E; H: SomeInteger, K: GlKind[E]](kind: K, function: proc(kind: E): H {.stdcall.}): H = 
+    result = function(kind)

@@ -5,4 +5,7 @@ license     = "MIT"
 
 srcDir = "src"
 
-requires "nim >= 1.2.2"
+requires [
+    "nim >= 1.2.2",
+    "opengl >= 1.2.2"
+]
