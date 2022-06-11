@@ -3,7 +3,7 @@ import opengl, tables
 type
     # TODO reimplement this system, as manualy declaring conversions & memory sizes is ugly and inelegant
     DataKind* = enum
-        floatData
+        floatData, uintData
 
     BufferKind* = enum
         arrayBuffer, elementArrayBuffer
@@ -30,6 +30,8 @@ proc size*(dataKind: DataKind): int =
     result = case dataKind:
     of floatData:
         sizeof(float32)
+    of uintData:
+        sizeof(uint32)
     else:
         raise newException(ValueError, "Given data kind does not have a memory size associated with it. Add one!")
 

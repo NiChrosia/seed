@@ -9,13 +9,17 @@ type
     ## An object for transferring data en-masse from the CPU to the GPU.
     Buffer* = ref object of Handled[uint32]
         kind*: BufferKind
+
+    VertexBuffer* = ref object of Buffer
         dataKind*: DataKind
 
         inputs*: seq[ShaderInput]
 
+    ElementBuffer* = ref object of Buffer
+
     ## An object describing how vertex attributes are stored in a buffer.
     VertexArray* = ref object of Handled[uint32]
-        buffers: seq[Buffer]
+        buffers: seq[VertexBuffer]
 
 # initialization
 
@@ -45,15 +49,23 @@ proc verifyHeights(inputs: seq[ShaderInput]) =
         else:
             raise newException(ValueError, "Given inputs do not match in height!")
 
-proc newBuffer*(kind: BufferKind, inputs: seq[ShaderInput]): Buffer =
+proc newVertexBuffer*(dataKind: DataKind, inputs: seq[ShaderInput]): VertexBuffer =
     let handle = register(glCreateBuffers)
     verifyHeights(inputs)
 
-    result = Buffer(handle: handle, inputs: inputs)
+    let kind = arrayBuffer
+
+    result = VertexBuffer(handle: handle, kind: kind, dataKind: dataKind, inputs: inputs)
+
+proc newElementBuffer*(): ElementBuffer =
+    let handle = register(glCreateBuffers)
+    let kind = elementArrayBuffer
+
+    result = ElementBuffer(handle: handle, kind: kind)
 
 ## vertex arrays
 
-proc newVertexArray*(buffers: seq[Buffer]): VertexArray =
+proc newVertexArray*(buffers: seq[VertexBuffer]): VertexArray =
     let handle = register(glCreateVertexArrays)
     result = VertexArray(handle: handle, buffers: buffers)
 
@@ -62,7 +74,7 @@ proc newVertexArray*(buffers: seq[Buffer]): VertexArray =
 proc inputPointer*(index, length, stride, offset: int, dataKind: DataKind, normalized: bool) =
     glVertexAttribPointer(index.uint32, length.int32, dataKind.asEnum, normalized, stride.int32, cast[pointer](offset))
 
-proc configure*(buffer: Buffer, program: ShaderProgram, array: VertexArray) =
+proc configurePointer*(buffer: VertexBuffer, program: ShaderProgram, array: VertexArray) =
     for index in 0 ..< buffer.inputs.len:
         let input = buffer.inputs[index]
 
@@ -81,11 +93,11 @@ proc configure*(buffer: Buffer, program: ShaderProgram, array: VertexArray) =
 
 proc configurePointers*(array: VertexArray, program: ShaderProgram) =
     for buffer in array.buffers:
-        buffer.configure(program, array)
+        buffer.configurePointer(program, array)
 
 # CPU-to-GPU communication
 
-proc pack*[T](buffer: Buffer, data: seq[seq[T]]): seq[T] =
+proc pack*[T](buffer: VertexBuffer, data: seq[seq[T]]): seq[T] =
     for y in 0 ..< buffer.inputs[0].height:
         for index in 0 ..< buffer.inputs.len:
             let input = buffer.inputs[index]
@@ -97,7 +109,10 @@ proc pack*[T](buffer: Buffer, data: seq[seq[T]]): seq[T] =
 
                 result.add(item)
 
-proc send*[T](buffer: Buffer, usage: DrawKind, data: seq[seq[T]]) =
+proc send*[T](buffer: VertexBuffer, usage: DrawKind, data: seq[seq[T]]) =
     let packed = buffer.pack(data)
 
-    glBufferData(buffer.kind.asEnum, packed.len * buffer.dataKind.size, unsafeAddr(packed), usage.asEnum)
+    glBufferData(buffer.kind.asEnum, packed.len * sizeof(packed), unsafeAddr(packed[0]), usage.asEnum)
+
+proc send*(buffer: ElementBuffer, usage: DrawKind, data: seq[uint32]) =
+    glBufferData(buffer.kind.asEnum, data.len * sizeof(uint32), unsafeAddr(data[0]), usage.asEnum)

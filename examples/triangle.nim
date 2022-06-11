@@ -1,4 +1,4 @@
-import ../src/seed/graphics/gl, windy, shady, opengl
+import ../src/seed/graphics/gl, windy, shady, opengl, sequtils
 
 #[
     TODO:
@@ -42,17 +42,28 @@ let colors = @[
     0f, 0f, 1f
 ]
 
-let inputs = newInputs(3, ("aPos", 3), ("aColor", 3))
-let buffer = newBuffer(arrayBuffer, inputs)
+let indices = @[
+    0, 1, 2
+].mapIt(it.uint32)
 
-let vertexArray = newVertexArray(@[buffer])
+let inputs = newInputs(3, ("aPos", 3), ("aColor", 3))
+let vertexBuffer = newVertexBuffer(floatData, inputs)
+
+let elementBuffer = newElementBuffer()
+
+let vertexArray = newVertexArray(@[vertexBuffer])
 
 glContext.vertexArray = vertexArray
 
-glContext[arrayBuffer] = buffer
-buffer.send(staticDraw, @[vertices, colors])
+glContext[arrayBuffer] = vertexBuffer
+vertexBuffer.send(staticDraw, @[vertices, colors])
+
+glContext[elementArrayBuffer] = elementBuffer
+elementBuffer.send(staticDraw, indices)
 
 vertexArray.configurePointers(program)
+
+glContext.vertexArray = nil
 
 proc display() =
     glClearColor(0f, 0f, 0f, 1f)
@@ -61,7 +72,8 @@ proc display() =
     glContext.program = program
     glContext.vertexArray = vertexArray
 
-    glDrawArrays(GL_TRIANGLES, 0, 3)
+    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, cast[pointer](0))
+    #glDrawArrays(GL_TRIANGLES, 0, 3)
 
     window.swapBuffers()
 
