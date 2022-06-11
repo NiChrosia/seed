@@ -74,7 +74,7 @@ proc compile(shader: Shader) =
         raise newException(CompilationError, message)
 
 proc link*(program: ShaderProgram) =
-    glLinkProgram(program. handle)
+    glLinkProgram(program.handle)
 
     let status = program.compileStatus()
 
@@ -89,9 +89,7 @@ proc link*(program: ShaderProgram) =
 proc newShader*(kind: ShaderKind, source: string): Shader = 
     let handle = glCreateShader(kind.asEnum)
 
-    result = new(Shader)
-    result.handle = handle
-    result.kind = kind
+    result = Shader(handle: handle, kind: kind)
     result.source = source
 
     result.compile()
@@ -103,9 +101,7 @@ proc newShader*(kind: ShaderKind, source: File): Shader =
 
 proc newProgram*(): ShaderProgram =
     let handle = glCreateProgram()
-
-    result = new(ShaderProgram)
-    result.handle = handle
+    result = ShaderProgram(handle: handle)
 
 proc `vertex=`*(program: ShaderProgram, shader: Shader) =
     let function = case shader == nil:
@@ -124,5 +120,6 @@ proc `fragment=`*(program: ShaderProgram, shader: Shader) =
     program.fragment = shader
 
 proc `shaders=`*(program: ShaderProgram, shaders: tuple[vertex: Shader, fragment: Shader]) =
-    program.vertex = shaders.vertex
-    program.fragment = shaders.fragment
+    # manual invocations to ensure proper handling
+    `vertex=`(program, shaders.vertex)
+    `fragment=`(program, shaders.fragment)

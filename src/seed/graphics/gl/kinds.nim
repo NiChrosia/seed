@@ -1,8 +1,12 @@
 import opengl, tables
 
 type
+    # TODO reimplement this system, as manualy declaring conversions & memory sizes is ugly and inelegant
+    DataKind* = enum
+        floatData
+
     BufferKind* = enum
-        vertexBuffer, elementBuffer
+        arrayBuffer, elementArrayBuffer
 
     ShaderKind* = enum
         vertexShader, fragmentShader
@@ -21,9 +25,21 @@ template declareConversion(kindType, enumType: typed, tuples: untyped) =
     proc asEnum*(kind: kindType): enumType = 
         result = table[kind]
 
+proc size*(dataKind: DataKind): int =
+    {.warning[UnreachableElse]: off.}
+    result = case dataKind:
+    of floatData:
+        sizeof(float32)
+    else:
+        raise newException(ValueError, "Given data kind does not have a memory size associated with it. Add one!")
+
+declareConversion(DataKind, GLenum, {
+    floatData: cGL_FLOAT
+})
+
 declareConversion(BufferKind, GLenum, {
-    vertexBuffer: GL_ARRAY_BUFFER,
-    elementBuffer: GL_ELEMENT_ARRAY_BUFFER
+    arrayBuffer: GL_ARRAY_BUFFER,
+    elementArrayBuffer: GL_ELEMENT_ARRAY_BUFFER
 })
 
 declareConversion(ShaderKind, GLenum, {

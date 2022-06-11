@@ -1,13 +1,15 @@
-import shared, kinds, configuration, buffers, shaders, opengl, tables
+import shared, kinds, buffers, shaders, opengl, tables
 
 type
     # essentially an emulator of bound objects
-    Context = object
-        vertexArray: ref VertexArray
-        buffers: Table[BufferKind, ref Buffer]
-        program: ref ShaderProgram
+    Context* = object
+        vertexArray: VertexArray
+        buffers*: Table[BufferKind, Buffer]
+        program: ShaderProgram
 
-var context* {.global.} = Context()
+# named glContext instead of context because the compiler mistakes it for the module, which is of type void
+# annoyingly, it merely says 'undeclared identifier vertexArray', for example, rather than something about invalid types
+var glContext* {.global.} = Context()
 
 # binding
 template bindObject(item, function: typed) =
@@ -23,32 +25,23 @@ template bindTypedObject(item, defaultKind, function: typed) =
     else:
         function(item.kind.asEnum, item.handle)
 
-# getter & setter declaration
-template declareProperty(name: untyped, itemType, bindFunction: typed) = 
-    proc `name =`*(context: var Context, item: itemType) {.inject.} = 
-        bindObject(item, bindFunction)
-        context.`name` = item
+proc `vertexArray=`*(glContext: var Context, array: VertexArray) {.inline.} =
+    bindObject(array, glBindVertexArray)
+    glContext.vertexArray = array
 
-    proc `name`*(context: Context): itemType = 
-        result = context.`name`
+proc vertexArray*(glContext: Context): VertexArray {.inline.} =
+    result = glContext.vertexArray
 
-template declareTypedProperty(name, plural: untyped, itemType, defaultKind, bindFunction: typed) = 
-    proc `name =`*(context: var Context, item: itemType) {.inject.} = 
-        bindTypedObject(item, defaultKind, bindFunction)
-        context.`plural`[defaultKind] = item
+proc `[]=`*(context: var Context, kind: BufferKind, buffer: Buffer) {.inline.} =
+    bindTypedObject(buffer, kind, glBindBuffer)
+    context.buffers[kind] = buffer
 
-    proc `name`*(context: Context): itemType = 
-        result = context.`plural`[defaultKind]
+proc `[]`*(context: Context, kind: BufferKind): Buffer {.inline.} =
+    result = context.buffers[kind]
 
-# specific property types, generally for typed properties, like buffers & textures
-# speaking of which, TODO implement textures
-template declareBufferProperty(name: untyped, defaultKind: typed) = 
-    declareTypedProperty(name, buffers, ref Buffer, defaultKind, glBindBuffer)
+proc `program=`*(glContext: var Context, program: ShaderProgram) {.inline.} =
+    bindObject(program, glUseProgram)
+    glContext.program = program
 
-# getters & setters
-declareProperty(vertexArray, ref VertexArray, glBindVertexArray)
-
-declareBufferProperty(vertexBuffer, BufferKind.vertexBuffer)
-declareBufferProperty(elementBuffer, BufferKind.elementBuffer)
-
-declareProperty(program, ref ShaderProgram, glUseProgram)
+proc program*(glContext: Context): ShaderProgram {.inline.} =
+    result = glContext.program

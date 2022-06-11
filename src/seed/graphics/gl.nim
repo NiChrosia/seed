@@ -1,6 +1,5 @@
 import gl/[
     kinds,
-    configuration,
     buffers,
     shaders,
     context
@@ -8,7 +7,6 @@ import gl/[
 
 export
     kinds,
-    configuration,
     buffers,
     shaders,
     context

@@ -1,0 +1,30 @@
+import seed/graphics/gl
+
+let vertices = @[
+    -0.5f, -0.5f, 0f, # bottom-left
+    0.5f,  -0.5f, 0f, # bottom-right
+    0f,    0.5f,  0f  # top
+]
+
+let colors = @[
+    1f, 0f, 0f, # bottom-left
+    0f, 1f, 0f, # bottom-right
+    0f, 0f, 1f  # top
+]
+
+let inputs = newInputs(3, ("aPos", 3), ("aColor", 3))
+
+# manual creation to avoid registering handles
+let buffer = new(Buffer)
+buffer.kind = arrayBuffer
+buffer.inputs = inputs
+
+let packed = buffer.pack(@[vertices, colors])
+let intended = @[
+    # vertices    # colors
+    -0.5f, -0.5f, 0f, 1f, 0f, 0f, # bottom-left
+    0.5f,  -0.5f, 0f, 0f, 1f, 0f, # bottom-right
+    0f,    0.5f,  0f, 0f, 0f, 1f  # top
+]
+
+assert packed == intended, "Packed data (" & $packed & ") did not match intended output! (" & $intended & ")"
