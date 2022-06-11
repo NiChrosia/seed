@@ -15,7 +15,7 @@ let colors = @[
 let inputs = newInputs(3, ("aPos", 3), ("aColor", 3))
 
 # manual creation to avoid registering handles
-let buffer = new(Buffer)
+let buffer = new(VertexBuffer)
 buffer.kind = arrayBuffer
 buffer.inputs = inputs
 
