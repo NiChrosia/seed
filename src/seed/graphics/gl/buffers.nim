@@ -4,7 +4,7 @@ type
     ## A representation of a shader attribute (or input), used to pack data from separate inputs into one seq
     ShaderInput* = object of RootObj
         name: string
-        length, height: int
+        length: int
 
     ## An object for transferring data en-masse from the CPU to the GPU.
     Buffer* = ref object of Handled[uint32]
@@ -25,33 +25,20 @@ type
 
 ## inputs
 
-proc newInput*(name: string, height, length: int): ShaderInput =
-    result = ShaderInput(name: name, length: length, height: height)
+proc newInput*(name: string, length: int): ShaderInput =
+    result = ShaderInput(name: name, length: length)
 
 # TODO make the lengths after the height less ambiguous-looking
-proc newInputs*(height: int, lengths: varargs[tuple[name: string, length: int]]): seq[ShaderInput] =
+proc newInputs*(lengths: varargs[tuple[name: string, length: int]]): seq[ShaderInput] =
     for pair in lengths:
         let (name, length) = pair
 
-        result.add(newInput(name, length, height))
+        result.add(newInput(name, length))
 
 ## buffers
 
-# ensure all the heights are the same, to ensure data integrity
-proc verifyHeights(inputs: seq[ShaderInput]) =
-    var height = inputs[0].height
-
-    for index in 1 ..< inputs.len:
-        let nextHeight = inputs[index].height
-
-        if height == nextHeight:
-            height = nextHeight
-        else:
-            raise newException(ValueError, "Given inputs do not match in height!")
-
 proc newVertexBuffer*(dataKind: DataKind, inputs: seq[ShaderInput]): VertexBuffer =
     let handle = register(glCreateBuffers)
-    verifyHeights(inputs)
 
     let kind = arrayBuffer
 
@@ -98,7 +85,20 @@ proc configurePointers*(array: VertexArray, program: ShaderProgram) =
 # CPU-to-GPU communication
 
 proc pack*[T](buffer: VertexBuffer, data: seq[seq[T]]): seq[T] =
-    for y in 0 ..< buffer.inputs[0].height:
+    var height = data[0].len div buffer.inputs[0].length
+
+    for index in 1 ..< data.len:
+        let dataLength = data[index].len
+        let inputLength = buffer.inputs[index].length
+
+        let newHeight = dataLength div inputLength
+
+        if newHeight != height:
+            raise newException(Exception, "Given data has mismatching height!")
+        else:
+            height = newHeight
+
+    for y in 0 ..< height:
         for index in 0 ..< buffer.inputs.len:
             let input = buffer.inputs[index]
             let subdata = data[index]

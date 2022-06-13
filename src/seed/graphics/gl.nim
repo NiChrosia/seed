@@ -2,11 +2,15 @@ import gl/[
     kinds,
     buffers,
     shaders,
-    context
+    uniforms,
+    context,
+    binding
 ]
 
 export
     kinds,
     buffers,
     shaders,
-    context
+    uniforms,
+    context,
+    binding
