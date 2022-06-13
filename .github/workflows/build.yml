@@ -29,7 +29,9 @@ jobs:
     - uses: jiro4989/setup-nim-action@v1
     
     - name: Install dependencies
-      run: nimble install -y
+      run: |
+        nimble refresh
+        nimble install -y
     
     - name: Run tests
       run: testament pattern "tests/*.nim"
