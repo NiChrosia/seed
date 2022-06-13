@@ -1,4 +1,4 @@
-import shared, kinds, buffers, shaders, opengl, tables, variant
+import shared, kinds, buffers, shaders, textures, opengl, tables, variant
 
 let active = newTable[TypeId, bool]([])
 
@@ -24,8 +24,14 @@ template declareUsage(bindProc: typed, usedType: typedesc) =
         if shouldDismiss:
             dismiss(usedType)
 
+template declareTypedUsage(kind, bindProc: typed, itemType: typedesc) =
+    declareUsage(proc(handle: uint32) = bindProc(kind.asEnum, handle), itemType)
+
 template declareBufferUsage(kind: BufferKind, bufferType: typedesc) =
-    declareUsage(proc(handle: uint32) = glBindBuffer(kind.asEnum, handle), bufferType)
+    declareTypedUsage(kind, glBindBuffer, bufferType)
+
+template declareTextureUsage(kind: TextureKind, textureType: typedesc) =
+    declareTypedUsage(kind, glBindTexture, textureType)
 
 # activity
 
@@ -41,3 +47,7 @@ declareUsage(glUseProgram, ShaderProgram)
 
 declareBufferUsage(arrayBuffer, VertexBuffer)
 declareBufferUsage(elementArrayBuffer, ElementBuffer)
+
+declareTextureUsage(texture1, Texture1)
+declareTextureUsage(texture2, Texture2)
+declareTextureUsage(texture3, Texture3)

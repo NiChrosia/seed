@@ -3,7 +3,7 @@ import gl/[
     buffers,
     shaders,
     uniforms,
-    context,
+    textures,
     binding
 ]
 
@@ -12,5 +12,5 @@ export
     buffers,
     shaders,
     uniforms,
-    context,
+    textures,
     binding
