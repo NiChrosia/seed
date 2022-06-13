@@ -8,7 +8,6 @@
 nimcache
 *.pdb
 *.ilk
-.*
 
 # testament
 testresults/
