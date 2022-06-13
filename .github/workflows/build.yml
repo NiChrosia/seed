@@ -12,5 +12,14 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: jiro4989/setup-nim-action@v1
-    - run: nimble install -y
-    - run: testament pattern "tests/*.nim"
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.nimble/pkgs
+    
+    - name: Install dependencies
+      run: nimble install -y
+    
+    - name: Run tests
+      run: testament pattern "tests/*.nim"
