@@ -1,12 +1,17 @@
 import ../src/seed/graphics/gl, windy, shady, opengl, sequtils
 
 #[
+    (items do not necessarily need to be completed in order)
+
     TODO:
     (completed) 1. implement element buffer handling
     (completed) 2. remove height as a property of inputs/buffers; setting it at initialization was naive
     (completed) 3. implement uniforms
     4. implement textures
-    - subpoint: I still need to implement atlases
+    4.1: implement texture atlases
+    5. implement medium-level shape rendering (ie. handled drawing, procs like `data.vertex(x, y, z); renderer.draw(data)`)
+    6. implement medium-level texture rendering
+    7. implement high-level rendering (ie. being able to draw things without any setup aside from `seed.initialize()`)
 ]#
 
 let window = newWindow("Triangle example", ivec2(1280, 800), openglMajorVersion = 3, openglMinorVersion = 3)

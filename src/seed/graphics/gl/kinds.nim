@@ -1,56 +1,35 @@
-import opengl, tables
+import opengl
 
 type
-    # TODO reimplement this system, as manualy declaring conversions & memory sizes is ugly and inelegant
-    DataKind* = enum
-        floatData, uintData
+    GlKind = object of RootObj
+        asEnum*: GLenum
 
-    BufferKind* = enum
-        arrayBuffer, elementArrayBuffer
+    BufferKind* = GlKind
+    ShaderKind* = GlKind
+    DrawKind* = GlKind
 
-    ShaderKind* = enum
-        vertexShader, fragmentShader
+    DataKind* = object of GlKind
+        size*: int
 
-    DrawKind* = enum
-        # set once, used a few times
-        streamDraw,
-        # set once, used many times
-        staticDraw,
-        # set many times, used many times
-        dynamicDraw
+proc newDataKind*[T](asEnum: GLenum, dataType: typedesc[T]): DataKind =
+    result = DataKind(asEnum: asEnum, size: sizeof(dataType))
 
-template declareConversion(kindType, enumType: typed, tuples: untyped) =
-    let table = tuples.toTable
+proc newGlKind*(asEnum: GLenum): GlKind =
+    result = GlKind(asEnum: asEnum)
 
-    proc asEnum*(kind: kindType): enumType = 
-        result = table[kind]
+let
+    floatData* = newDataKind(cGL_FLOAT, float32)
+    uintData* = newDataKind(GL_UNSIGNED_INT, uint32)
 
-proc size*(dataKind: DataKind): int =
-    {.warning[UnreachableElse]: off.}
-    result = case dataKind:
-    of floatData:
-        sizeof(float32)
-    of uintData:
-        sizeof(uint32)
-    else:
-        raise newException(ValueError, "Given data kind does not have a memory size associated with it. Add one!")
+    arrayBuffer*: BufferKind = newGlKind(GL_ARRAY_BUFFER)
+    elementArrayBuffer*: BufferKind = newGlKind(GL_ELEMENT_ARRAY_BUFFER)
 
-declareConversion(DataKind, GLenum, {
-    floatData: cGL_FLOAT
-})
+    vertexShader*: ShaderKind = newGlKind(GL_VERTEX_SHADER)
+    fragmentShader*: ShaderKind = newGlKind(GL_FRAGMENT_SHADER)
 
-declareConversion(BufferKind, GLenum, {
-    arrayBuffer: GL_ARRAY_BUFFER,
-    elementArrayBuffer: GL_ELEMENT_ARRAY_BUFFER
-})
-
-declareConversion(ShaderKind, GLenum, {
-    vertexShader: GL_VERTEX_SHADER,
-    fragmentShader: GL_FRAGMENT_SHADER
-})
-
-declareConversion(DrawKind, GlEnum, {
-    streamDraw: GL_STREAM_DRAW,
-    staticDraw: GL_STATIC_DRAW,
-    dynamicDraw: GL_DYNAMIC_DRAW
-})
+    # set once, used a few times
+    streamDraw*: DrawKind = newGlKind(GL_STREAM_DRAW)
+    # set once, used many times
+    staticDraw*: DrawKind = newGlKind(GL_STATIC_DRAW)
+    # set many times, used many times
+    dynamicDraw*: DrawKind = newGlKind(GL_DYNAMIC_DRAW)
