@@ -37,26 +37,27 @@ void main() {
 }
 """
 
-let vertexShader = newShader(vertexShader, vertexText)
-let fragmentShader = newShader(fragmentShader, fragmentText)
+let vertexShader = newShader(GL_VERTEX_SHADER, vertexText)
+let fragmentShader = newShader(GL_FRAGMENT_SHADER, fragmentText)
 
 let program = newProgram()
 program.shaders = (vertexShader, fragmentShader)
 program.link()
 
 let
-    xOffset = program.newUniform[:float32]("xOffset", floatUniform)
+    xOffset = program.newUniform[:float32]("xOffset", updateFloat)
+    textureId = program.newTextureUniform("theTexture")
 
 var
     image = openImage("res/sprites/box.qoi")
-    texture = program.newTexture2("theTexture", image)
+    texture = newTexture2(image)
 
 with(texture, true):
-    texture.wrapX = kinds.repeat
-    texture.wrapY = kinds.repeat
+    texture.wrapX = GL_REPEAT
+    texture.wrapY = GL_REPEAT
 
-    texture.minFilter = linear
-    texture.magFilter = linear
+    texture.minFilter = GL_LINEAR
+    texture.magFilter = GL_LINEAR
 
     texture.generate()
 
@@ -80,7 +81,7 @@ let indices = @[
 ].mapIt(it.uint32)
 
 let inputs = newInputs(("aPos", 3), ("aTexCoord", 3))
-let vertexBuffer = newVertexBuffer(floatData, inputs)
+let vertexBuffer = newVertexBuffer(float32, cGL_FLOAT, inputs)
 
 let elementBuffer = newElementBuffer()
 
@@ -88,22 +89,21 @@ let vertexArray = newVertexArray(@[vertexBuffer])
 
 with(vertexArray, true):
     with(vertexBuffer, false):
-        vertexBuffer.send(staticDraw, @[vertices, texCoords])
+        vertexBuffer.send(GL_STATIC_DRAW, @[vertices, texCoords])
 
     with(elementBuffer, false):
-        elementBuffer.send(staticDraw, indices)
+        elementBuffer.send(GL_STATIC_DRAW, indices)
 
     vertexArray.configurePointers(program)
 
 with(program, true):
-    texture.uniform.update(0)
+    textureId.update(0)
 
 proc display() =
     glClearColor(0f, 0f, 0f, 1f)
     glClear(GL_COLOR_BUFFER_BIT)
 
-    texture.slot = activeTexture0
-    use(texture)
+    use(texture, 0)
 
     use(program)
     use(vertexArray)

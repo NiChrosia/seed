@@ -1,4 +1,4 @@
-import shared, kinds, shaders, opengl, ../../util/seqs, sequtils
+import shared, shaders, opengl, ../../util/seqs, sequtils
 
 type
     ## A representation of a shader attribute (or input), used to pack data from separate inputs into one seq
@@ -8,10 +8,11 @@ type
 
     ## An object for transferring data en-masse from the CPU to the GPU.
     Buffer* = ref object of Handled[uint32]
-        kind*: BufferKind
+        kind*: GLenum
 
     VertexBuffer* = ref object of Buffer
-        dataKind*: DataKind
+        dataType: GLenum
+        dataSize: int
 
         inputs*: seq[ShaderInput]
 
@@ -37,18 +38,15 @@ proc newInputs*(lengths: varargs[tuple[name: string, length: int]]): seq[ShaderI
 
 ## buffers
 
-proc newVertexBuffer*(dataKind: DataKind, inputs: seq[ShaderInput]): VertexBuffer =
+proc newVertexBuffer*[T](dataType: typedesc[T], dataEnum: GLenum, inputs: seq[ShaderInput]): VertexBuffer =
     let handle = register(glCreateBuffers)
 
-    let kind = arrayBuffer
-
-    result = VertexBuffer(handle: handle, kind: kind, dataKind: dataKind, inputs: inputs)
+    result = VertexBuffer(handle: handle, kind: GL_ARRAY_BUFFER, dataType: dataEnum, dataSize: sizeof(dataType), inputs: inputs)
 
 proc newElementBuffer*(): ElementBuffer =
     let handle = register(glCreateBuffers)
-    let kind = elementArrayBuffer
 
-    result = ElementBuffer(handle: handle, kind: kind)
+    result = ElementBuffer(handle: handle, kind: GL_ELEMENT_ARRAY_BUFFER)
 
 ## vertex arrays
 
@@ -58,8 +56,8 @@ proc newVertexArray*(buffers: seq[VertexBuffer]): VertexArray =
 
 # shader attributes
 
-proc inputPointer*(index, length, stride, offset: int, dataKind: DataKind, normalized: bool) =
-    glVertexAttribPointer(index.uint32, length.int32, dataKind.asEnum, normalized, stride.int32, cast[pointer](offset))
+proc inputPointer*(index, length, stride, offset: int, dataType: GLenum, normalized: bool) =
+    glVertexAttribPointer(index.uint32, length.int32, dataType, normalized, stride.int32, cast[pointer](offset))
 
 proc configurePointer*(buffer: VertexBuffer, program: ShaderProgram, array: VertexArray) =
     for index in 0 ..< buffer.inputs.len:
@@ -71,11 +69,11 @@ proc configurePointer*(buffer: VertexBuffer, program: ShaderProgram, array: Vert
         let itemsBefore = indicesBefore.mapIt(buffer.inputs[it])
         let lengthBefore = itemsBefore.mapIt(it.length).sum()
 
-        let stride = totalLength.int32 * buffer.dataKind.size
-        let offset = lengthBefore * buffer.dataKind.size
+        let stride = totalLength.int32 * buffer.dataSize
+        let offset = lengthBefore * buffer.dataSize
 
         glBindAttribLocation(program.handle, index.uint32, input.name.cstring)
-        inputPointer(index, input.length, stride, offset, buffer.dataKind, false)
+        inputPointer(index, input.length, stride, offset, buffer.dataType, false)
         glEnableVertexAttribArray(index.uint32)
 
 proc configurePointers*(array: VertexArray, program: ShaderProgram) =
@@ -109,10 +107,10 @@ proc pack*[T](buffer: VertexBuffer, data: seq[seq[T]]): seq[T] =
 
                 result.add(item)
 
-proc send*[T](buffer: VertexBuffer, usage: DrawKind, data: seq[seq[T]]) =
+proc send*[T](buffer: VertexBuffer, usage: GLenum, data: seq[seq[T]]) =
     let packed = buffer.pack(data)
 
-    glBufferData(buffer.kind.asEnum, packed.len * sizeof(packed), unsafeAddr(packed[0]), usage.asEnum)
+    glBufferData(buffer.kind, packed.len * sizeof(packed), unsafeAddr(packed[0]), usage)
 
-proc send*(buffer: ElementBuffer, usage: DrawKind, data: seq[uint32]) =
-    glBufferData(buffer.kind.asEnum, data.len * sizeof(uint32), unsafeAddr(data[0]), usage.asEnum)
+proc send*(buffer: ElementBuffer, usage: GLenum, data: seq[uint32]) =
+    glBufferData(buffer.kind, data.len * sizeof(uint32), unsafeAddr(data[0]), usage)

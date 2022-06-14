@@ -1,8 +1,8 @@
-import shared, kinds, opengl, tables
+import shared, opengl, tables
 
 type
     Shader* = ref object of Handled[uint32]
-        kind*: ShaderKind
+        kind*: GLenum
 
     ShaderProgram* = ref object of Handled[uint32]
         vertex, fragment: Shader
@@ -86,15 +86,15 @@ proc link*(program: ShaderProgram) =
 
 # initialization
 
-proc newShader*(kind: ShaderKind, source: string): Shader = 
-    let handle = glCreateShader(kind.asEnum)
+proc newShader*(kind: GLenum, source: string): Shader = 
+    let handle = glCreateShader(kind)
 
     result = Shader(handle: handle, kind: kind)
     result.source = source
 
     result.compile()
 
-proc newShader*(kind: ShaderKind, source: File): Shader =
+proc newShader*(kind: GLenum, source: File): Shader =
     let contents = readAll(source)
     
     result = newShader(kind, contents)

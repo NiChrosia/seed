@@ -1,4 +1,4 @@
-import seed/graphics/gl
+import seed/graphics/gl, opengl
 
 let vertices = @[
     -0.5f, -0.5f, 0f, # bottom-left
@@ -16,7 +16,7 @@ let inputs = newInputs(("aPos", 3), ("aColor", 3))
 
 # manual creation to avoid registering handles
 let buffer = new(VertexBuffer)
-buffer.kind = arrayBuffer
+buffer.kind = GL_ARRAY_BUFFER
 buffer.inputs = inputs
 
 let packed = buffer.pack(@[vertices, colors])

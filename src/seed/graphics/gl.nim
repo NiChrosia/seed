@@ -1,5 +1,4 @@
 import gl/[
-    kinds,
     buffers,
     shaders,
     uniforms,
@@ -8,7 +7,6 @@ import gl/[
 ]
 
 export
-    kinds,
     buffers,
     shaders,
     uniforms,
