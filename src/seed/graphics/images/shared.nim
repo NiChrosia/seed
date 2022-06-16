@@ -4,7 +4,7 @@ type
     Image* = object of RootObj
         data*: seq[uint8]
 
-        width*, height*: uint32
+        width*, height*: int32
         channels*, colorspace*: uint8
 
 var formats* = initTable[string, File -> Image]()

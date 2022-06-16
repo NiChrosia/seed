@@ -1,4 +1,4 @@
-import ../src/seed/graphics/[gl, images], windy, shady, opengl, sequtils
+import ../src/seed/graphics/[gl, images], windy, shady, opengl, sequtils, math, times
 
 #[
     (items do not necessarily need to be completed in order)
@@ -19,8 +19,8 @@ let window = newWindow("Triangle example", ivec2(800, 800), openglMajorVersion =
 window.makeContextCurrent()
 loadExtensions()
 
-proc vertex(xOffset: Uniform[float32], aPos: Vec3, aTexCoord: Vec2, gl_Position: var Vec4, texCoord: var Vec2) =
-    gl_Position = vec4(aPos.x + xOffset, aPos.y, aPos.z, 1f)
+proc vertex(offset: Uniform[Vec3], aPos: Vec3, aTexCoord: Vec2, gl_Position: var Vec4, texCoord: var Vec2) =
+    gl_Position = vec4(aPos.x + offset.x, aPos.y + offset.y, aPos.z + offset.z, 1f)
     texCoord = aTexCoord
 
 var
@@ -45,7 +45,7 @@ program.shaders = (vertexShader, fragmentShader)
 program.link()
 
 let
-    xOffset = program.newUniform[:float32]("xOffset", updateFloat)
+    offset = program.newUniform[:Vec3]("offset", updateVec3)
     textureId = program.newTextureUniform("theTexture")
 
 var
@@ -108,7 +108,10 @@ proc display() =
     use(program)
     use(vertexArray)
 
-    xOffset.update(0.5f)
+    let radians = epochTime() mod 2 * PI
+    let x = 0.5f * cos(radians)
+    let y = 0.5f * sin(radians)
+    offset.update(vec3(x, y, 0f))
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, cast[pointer](0))
 

@@ -13,8 +13,9 @@ proc readQoi*(file: File): Image =
     with(result):
         data = data
 
-        width = desc.width
-        height = desc.height
+        # making the width & height be unsigned is simply ridiculous
+        width = desc.width.int32
+        height = desc.height.int32
 
         channels = desc.channels
         colorspace = desc.colorspace
