@@ -1,4 +1,4 @@
-import ../src/seed/graphics/[gl, images], windy, shady, opengl, sequtils, math, times
+import ../src/seed/graphics/[gl, images], windy, shady, opengl, sequtils, math
 
 #[
     (items do not necessarily need to be completed in order)
@@ -14,13 +14,13 @@ import ../src/seed/graphics/[gl, images], windy, shady, opengl, sequtils, math, 
     7. implement high-level rendering (ie. being able to draw things without any setup aside from `seed.initialize()`)
 ]#
 
-let window = newWindow("Triangle example", ivec2(800, 800), openglMajorVersion = 3, openglMinorVersion = 3)
+let window = newWindow("Triangle example", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
 
 window.makeContextCurrent()
 loadExtensions()
 
-proc vertex(offset: Uniform[Vec3], aPos: Vec3, aTexCoord: Vec2, gl_Position: var Vec4, texCoord: var Vec2) =
-    gl_Position = vec4(aPos.x + offset.x, aPos.y + offset.y, aPos.z + offset.z, 1f)
+proc vertex(model: Uniform[Mat4], view: Uniform[Mat4], projection: Uniform[Mat4], aPos: Vec3, aTexCoord: Vec2, gl_Position: var Vec4, texCoord: var Vec2) =
+    gl_Position = projection * view * model * vec4(aPos.x, aPos.y, aPos.z, 1f)
     texCoord = aTexCoord
 
 var
@@ -45,7 +45,10 @@ program.shaders = (vertexShader, fragmentShader)
 program.link()
 
 let
-    offset = program.newUniform[:Vec3]("offset", updateVec3)
+    model = program.newUniform[:Mat4]("model", updateMatrix)
+    view = program.newUniform[:Mat4]("view", updateMatrix)
+    projection = program.newUniform[:Mat4]("projection", updateMatrix)
+
     textureId = program.newTextureUniform("theTexture")
 
 var
@@ -99,6 +102,10 @@ with(vertexArray, true):
 with(program, true):
     textureId.update(0)
 
+    model.update(mat4())
+    view.update(mat4())
+    projection.update(perspective(45f, window.size.x / window.size.y, 0.1f, 100f))
+
 proc display() =
     glClearColor(0f, 0f, 0f, 1f)
     glClear(GL_COLOR_BUFFER_BIT)
@@ -108,10 +115,8 @@ proc display() =
     use(program)
     use(vertexArray)
 
-    let radians = epochTime() mod 2 * PI
-    let x = 0.5f * cos(radians)
-    let y = 0.5f * sin(radians)
-    offset.update(vec3(x, y, 0f))
+    model.update(rotateX(55f.toRadians))
+    view.update(translate(vec3(0f, 0f, -3f)))
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, cast[pointer](0))
 
