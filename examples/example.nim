@@ -1,4 +1,4 @@
-import ../src/seed/graphics/[gl, images], windy, shady, opengl, sequtils, math
+import ../src/seed/graphics/[gl, images], ../src/seed/util/[seqs], windy, shady, opengl, sequtils, math, times
 
 #[
     (items do not necessarily need to be completed in order)
@@ -65,22 +65,47 @@ with(texture, true):
     texture.generate()
 
 let vertices = @[
-    -0.5f, -0.5f, 0f,
-    0.5f,  -0.5f, 0f,
-    -0.5f, 0.5f,  0f,
-    0.5f,  0.5f,  0f
+    -1f, -1f, -1f, # left bottom back
+    -1f, 1f, -1f, # left top back
+    1f, -1f, -1f, # right bottom back
+    1f, 1f, -1f, # right top back
+
+    -1f, -1f, 1f, # left bottom front
+    -1f, 1f, 1f, # left top front
+    1f, -1f, 1f, # right bottom front
+    1f, 1f, 1f, # right top front
 ]
 
 let texCoords = @[
-    0f, 0f, 0f,
-    1f, 0f, 0f,
-    0f, 1f, 0f,
-    1f, 1f, 0f
+    0f, 0f, 0f, # bottom-left
+    1f, 0f, 0f, # bottom-right
+    0f, 1f, 0f, # top-left
+    1f, 1f, 0f, # top-right
+
+    1f, 0f, 0f, # bottom-right
+    0f, 0f, 0f, # bottom-left
+    1f, 1f, 0f, # top-right
+    0f, 1f, 0f, # top-left
 ]
 
 let indices = @[
-    0, 1, 2,
-    1, 2, 3
+    0, 1, 2, # back
+    1, 2, 3,
+
+    0, 4, 2, # left
+    4, 2, 6,
+
+    5, 1, 7, # right
+    1, 7, 3,
+
+    4, 5, 6, # front
+    5, 6, 7,
+
+    4, 5, 0, # bottom
+    5, 0, 1,
+
+    6, 7, 3, # top
+    7, 3, 4
 ].mapIt(it.uint32)
 
 let inputs = newInputs(("aPos", 3), ("aTexCoord", 3))
@@ -106,19 +131,27 @@ with(program, true):
     view.update(mat4())
     projection.update(perspective(45f, window.size.x / window.size.y, 0.1f, 100f))
 
+glEnable(GL_DEPTH_TEST)
+
 proc display() =
     glClearColor(0f, 0f, 0f, 1f)
-    glClear(GL_COLOR_BUFFER_BIT)
+    glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
     use(texture, 0)
 
     use(program)
     use(vertexArray)
 
-    model.update(rotateX(55f.toRadians))
-    view.update(translate(vec3(0f, 0f, -3f)))
+    let time = block:
+        let base = epochTime() - float64(1655492500) # remove excess numbers to avoid overflow
+        let factor = 100f
 
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, cast[pointer](0))
+        float32(base * factor)
+
+    model.update(rotateX(time.toRadians) * rotateY(time.toRadians))
+    view.update(translate(vec3(0f, 0f, -5f)))
+
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, cast[pointer](0))
 
     window.swapBuffers()
 

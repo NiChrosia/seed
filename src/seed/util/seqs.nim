@@ -10,3 +10,8 @@ proc sum*[T: SomeNumber](sequence: seq[T]): T =
         return sequence[0]
 
     result = sequence.foldl(a + b)
+
+proc flatten*[T](sequence: seq[seq[T]]): seq[T] =
+    for subseq in sequence:
+        for item in subseq:
+            result.add(item)
