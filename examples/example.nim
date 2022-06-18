@@ -1,20 +1,6 @@
-import ../src/seed/graphics/[gl, images], ../src/seed/util/[seqs], windy, shady, opengl, sequtils, math, times
+import ../src/seed/graphics/[gl, images], windy, shady, opengl, std/[sequtils, math, random]
 
-#[
-    (items do not necessarily need to be completed in order)
-
-    TODO:
-    (completed) 1. implement element buffer handling
-    (completed) 2. remove height as a property of inputs/buffers; setting it at initialization was naive
-    (completed) 3. implement uniforms
-    (completed) 4. implement textures
-    (no[t yet]) 4.1: implement texture atlases
-    5. implement medium-level shape rendering (ie. handled drawing, procs like `data.vertex(x, y, z); renderer.draw(data)`)
-    6. implement medium-level texture rendering
-    7. implement high-level rendering (ie. being able to draw things without any setup aside from `seed.initialize()`)
-]#
-
-let window = newWindow("Triangle example", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
+let window = newWindow("Quadrangle example", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
 
 window.makeContextCurrent()
 loadExtensions()
@@ -142,16 +128,17 @@ proc display() =
     use(program)
     use(vertexArray)
 
-    let time = block:
-        let base = epochTime() - float64(1655492500) # remove excess numbers to avoid overflow
-        let factor = 100f
+    for i in 0 .. 9:
+        randomize(i)
 
-        float32(base * factor)
+        let x = rotateX(rand(i * 40).float32.toRadians)
+        let y = rotateY(rand(i * 40).float32.toRadians)
+        let translate = translate(vec3(rand(1f..5f), rand(1f..5f), rand(1f..5f)))
 
-    model.update(rotateX(time.toRadians) * rotateY(time.toRadians))
-    view.update(translate(vec3(0f, 0f, -5f)))
+        model.update(x * y * translate)
+        view.update(translate(vec3(0f, 0f, -15f)))
 
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, cast[pointer](0))
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, cast[pointer](0))
 
     window.swapBuffers()
 
