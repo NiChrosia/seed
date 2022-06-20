@@ -130,11 +130,23 @@ var
 proc handleInput() =
     let movementSpeed = 0.005f * deltaTime
 
+    # z axis
+
     if window.buttonDown[KeyW]:
         cameraPos += movementSpeed * cameraFront
 
     if window.buttonDown[KeyS]:
         cameraPos -= movementSpeed * cameraFront
+
+    # y axis
+
+    if window.buttonDown[KeySpace]:
+        cameraPos += movementSpeed * cameraUp
+
+    if window.buttonDown[KeyLeftShift] or window.buttonDown[KeyRightShift]:
+        cameraPos -= movementSpeed * cameraUp
+
+    # x axis
 
     if window.buttonDown[KeyA] or window.buttonDown[KeyD]:
         # normalized to ensure constant speed
@@ -145,6 +157,17 @@ proc handleInput() =
 
         if window.buttonDown[KeyD]:
             cameraPos += right
+
+    #[
+        when mouse is moved:
+            let oldPos, newPos
+
+            # positions are functionally a 2D vector, where the x axis is pitch, and y is yaw
+            # roll can't be included, as a mouse can only input in 2 dimensions
+
+            let diff = newPos - oldPos
+
+    ]#
 
 window.onFrame = proc() =
     glClearColor(0f, 0f, 0f, 1f)
