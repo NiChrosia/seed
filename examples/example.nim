@@ -1,6 +1,6 @@
-import ../src/seed/graphics/[gl, images], windy, shady, opengl, std/[sequtils, math, random]
+import ../src/seed/graphics/[gl, images], windy, shady, opengl, std/[sequtils, math, random, times]
 
-let window = newWindow("Quadrangle example", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
+let window = newWindow("Deca-hexahedron example", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
 
 window.makeContextCurrent()
 loadExtensions()
@@ -119,14 +119,47 @@ with(program, true):
 
 glEnable(GL_DEPTH_TEST)
 
-proc display() =
+var
+    cameraPos = vec3(0f, 0f, 15f)
+    cameraFront = vec3(0f, 0f, -1f)
+    cameraUp = vec3(0f, 1f, 0f)
+
+    deltaTime = 0f
+    lastFrame = 0f
+
+proc handleInput() =
+    let movementSpeed = 0.005f * deltaTime
+
+    if window.buttonDown[KeyW]:
+        cameraPos += movementSpeed * cameraFront
+
+    if window.buttonDown[KeyS]:
+        cameraPos -= movementSpeed * cameraFront
+
+    if window.buttonDown[KeyA] or window.buttonDown[KeyD]:
+        # normalized to ensure constant speed
+        let right = movementSpeed * normalize(cross(cameraFront, cameraUp))
+
+        if window.buttonDown[KeyA]:
+            cameraPos -= right
+
+        if window.buttonDown[KeyD]:
+            cameraPos += right
+
+window.onFrame = proc() =
     glClearColor(0f, 0f, 0f, 1f)
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
+
+    let currentFrame = epochTime()
+    deltaTime = currentFrame - lastFrame
+    lastFrame = currentFrame
 
     use(texture, 0)
 
     use(program)
     use(vertexArray)
+
+    view.update(lookAt(cameraPos, cameraPos + cameraFront, cameraUp))
 
     for i in 0 .. 9:
         randomize(i)
@@ -136,12 +169,14 @@ proc display() =
         let translate = translate(vec3(rand(1f..5f), rand(1f..5f), rand(1f..5f)))
 
         model.update(x * y * translate)
-        view.update(translate(vec3(0f, 0f, -15f)))
 
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, cast[pointer](0))
 
     window.swapBuffers()
 
+window.onResize = proc() =
+    glViewport(0, 0, window.size.x, window.size.y)
+
 while not window.closeRequested:
-    display()
+    handleInput()
     pollEvents()
