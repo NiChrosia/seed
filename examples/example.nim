@@ -1,4 +1,4 @@
-import ../src/seed/graphics/[gl, images], windy, shady, opengl, std/[sequtils, math, random, times]
+import ../src/seed/graphics/[gl, images], windy, shady, opengl, std/[sequtils, math, random, times], vmath
 
 let window = newWindow("Deca-hexahedron example", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
 
@@ -127,6 +127,9 @@ var
     deltaTime = 0f
     lastFrame = 0f
 
+    firstMouse = true
+    initialMousePos = ivec2(0, 0)
+
 proc handleInput() =
     let movementSpeed = 0.005f * deltaTime
 
@@ -158,17 +161,6 @@ proc handleInput() =
         if window.buttonDown[KeyD]:
             cameraPos += right
 
-    #[
-        when mouse is moved:
-            let oldPos, newPos
-
-            # positions are functionally a 2D vector, where the x axis is pitch, and y is yaw
-            # roll can't be included, as a mouse can only input in 2 dimensions
-
-            let diff = newPos - oldPos
-
-    ]#
-
 window.onFrame = proc() =
     glClearColor(0f, 0f, 0f, 1f)
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
@@ -199,6 +191,37 @@ window.onFrame = proc() =
 
 window.onResize = proc() =
     glViewport(0, 0, window.size.x, window.size.y)
+
+window.onMouseMove = proc() =
+    if firstMouse:
+        initialMousePos = window.mousePos
+        firstMouse = false
+
+    let
+        initial = vec2(initialMousePos)
+        current = vec2(window.mousePos)
+        size = vec2(window.size)
+
+        normInitial = initial / size
+        normCurrent = current / size
+
+    var
+        yaw = (normCurrent.x - normInitial.x) * 360 - 90
+        pitch = ((1f - normCurrent.y) - (1f - normInitial.y)) * 360
+    
+    pitch = clamp(pitch, -89f, 89f)
+
+    echo yaw.int, "; ", pitch.int
+
+    let direction = block:
+        let
+            x = cos(yaw.toRadians) * cos(pitch.toRadians)
+            y = sin(pitch.toRadians)
+            z = sin(yaw.toRadians) * cos(pitch.toRadians)
+
+        vec3(x, y, z)
+
+    cameraFront = normalize(direction)
 
 while not window.closeRequested:
     handleInput()
