@@ -1,4 +1,4 @@
-import ../src/seed/graphics/[gl, images], windy, shady, opengl, std/[sequtils, math, random, times], vmath
+import ../src/seed/graphics/[gl, images, cameras], windy, shady, opengl, std/[sequtils, math, random, times], vmath
 
 let window = newWindow("Deca-hexahedron example", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
 
@@ -94,12 +94,13 @@ let indices = @[
     7, 3, 4
 ].mapIt(it.uint32)
 
-let inputs = newInputs(("aPos", 3), ("aTexCoord", 3))
-let vertexBuffer = newVertexBuffer(float32, cGL_FLOAT, inputs)
+let
+    inputs = newInputs(("aPos", 3), ("aTexCoord", 3))
+    vertexBuffer = newVertexBuffer(float32, cGL_FLOAT, inputs)
 
-let elementBuffer = newElementBuffer()
+    elementBuffer = newElementBuffer()
 
-let vertexArray = newVertexArray(@[vertexBuffer])
+    vertexArray = newVertexArray(@[vertexBuffer])
 
 with(vertexArray, true):
     with(vertexBuffer, false):
@@ -120,46 +121,17 @@ with(program, true):
 glEnable(GL_DEPTH_TEST)
 
 var
-    cameraPos = vec3(0f, 0f, 15f)
-    cameraFront = vec3(0f, 0f, -1f)
-    cameraUp = vec3(0f, 1f, 0f)
+    spatialInput = newSpatialInput3D(0.5f)
+    angleInput = newAngleInput(1f, window.size)
 
+    camera = newCamera(vec3(0f, 0f, 15f), vec3(0f, 0f, -1f), vec3(0f, 1f, 0f), spatialInput, angleInput)
+
+var
     deltaTime = 0f
     lastFrame = 0f
 
-    firstMouse = true
-    initialMousePos = ivec2(0, 0)
-
 proc handleInput() =
-    let movementSpeed = 0.005f * deltaTime
-
-    # z axis
-
-    if window.buttonDown[KeyW]:
-        cameraPos += movementSpeed * cameraFront
-
-    if window.buttonDown[KeyS]:
-        cameraPos -= movementSpeed * cameraFront
-
-    # y axis
-
-    if window.buttonDown[KeySpace]:
-        cameraPos += movementSpeed * cameraUp
-
-    if window.buttonDown[KeyLeftShift] or window.buttonDown[KeyRightShift]:
-        cameraPos -= movementSpeed * cameraUp
-
-    # x axis
-
-    if window.buttonDown[KeyA] or window.buttonDown[KeyD]:
-        # normalized to ensure constant speed
-        let right = movementSpeed * normalize(cross(cameraFront, cameraUp))
-
-        if window.buttonDown[KeyA]:
-            cameraPos -= right
-
-        if window.buttonDown[KeyD]:
-            cameraPos += right
+    camera.pos += camera.spatialInput.update(window.buttonDown, camera.front, camera.top)
 
 window.onFrame = proc() =
     glClearColor(0f, 0f, 0f, 1f)
@@ -174,7 +146,7 @@ window.onFrame = proc() =
     use(program)
     use(vertexArray)
 
-    view.update(lookAt(cameraPos, cameraPos + cameraFront, cameraUp))
+    view.update(camera.matrix)
 
     for i in 0 .. 9:
         randomize(i)
@@ -193,35 +165,8 @@ window.onResize = proc() =
     glViewport(0, 0, window.size.x, window.size.y)
 
 window.onMouseMove = proc() =
-    if firstMouse:
-        initialMousePos = window.mousePos
-        firstMouse = false
-
-    let
-        initial = vec2(initialMousePos)
-        current = vec2(window.mousePos)
-        size = vec2(window.size)
-
-        normInitial = initial / size
-        normCurrent = current / size
-
-    var
-        yaw = (normCurrent.x - normInitial.x) * 360 - 90
-        pitch = ((1f - normCurrent.y) - (1f - normInitial.y)) * 360
-    
-    pitch = clamp(pitch, -89f, 89f)
-
-    echo yaw.int, "; ", pitch.int
-
-    let direction = block:
-        let
-            x = cos(yaw.toRadians) * cos(pitch.toRadians)
-            y = sin(pitch.toRadians)
-            z = sin(yaw.toRadians) * cos(pitch.toRadians)
-
-        vec3(x, y, z)
-
-    cameraFront = normalize(direction)
+    # TODO find a better solution than converting the type every mouse movement
+    camera.front = camera.angleInput.update(vec3(vec2(window.mousePrevPos), 0f), vec3(vec2(window.mousePos), 0f))
 
 while not window.closeRequested:
     handleInput()
