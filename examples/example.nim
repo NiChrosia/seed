@@ -121,17 +121,17 @@ with(program, true):
 glEnable(GL_DEPTH_TEST)
 
 var
-    spatialInput = newSpatialInput3D(0.5f)
-    angleInput = newAngleInput(1f, window.size)
+    movement = newMovement3D(0.5f, wasdSpaceShift)
+    rotation = newMouseRotation(1f)
 
-    camera = newCamera(vec3(0f, 0f, 15f), vec3(0f, 0f, -1f), vec3(0f, 1f, 0f), spatialInput, angleInput)
+    camera = newCamera3D(vec3(0f, 0f, 15f), movement, vec3(0f, 0f, -1f), vec3(0f, 1f, 0f), rotation)
 
 var
     deltaTime = 0f
     lastFrame = 0f
 
 proc handleInput() =
-    camera.pos += camera.spatialInput.update(window.buttonDown, camera.front, camera.top)
+    camera.move(window.buttonDown)
 
 window.onFrame = proc() =
     glClearColor(0f, 0f, 0f, 1f)
@@ -165,8 +165,7 @@ window.onResize = proc() =
     glViewport(0, 0, window.size.x, window.size.y)
 
 window.onMouseMove = proc() =
-    # TODO find a better solution than converting the type every mouse movement
-    camera.front = camera.angleInput.update(vec3(vec2(window.mousePrevPos), 0f), vec3(vec2(window.mousePos), 0f))
+    camera.rotate(window.mousePos)
 
 while not window.closeRequested:
     handleInput()

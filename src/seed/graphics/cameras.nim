@@ -1,138 +1,191 @@
-import windy, std/[tables, with]
+import vmath, windy, std/[tables, sugar, with]
+
+export vmath, windy, tables, sugar
 
 type
-    CameraInput*[S] = object of RootObj
-        sensitivity*: S
+    # movement
 
-    SpatialInput*[V] = object of CameraInput[float32]
-        ## the effects for this input, such as W for forward
-        ## a set of the buttons for iteration can be obtained by
-        ## effects.keys
-        effects*: Table[Button, proc(front: V, top: V): V {.noSideEffect, gcsafe, locks: 0.}]
+    Movement*[C, V] = object of RootObj
+        buttons: seq[Button]
+        effectOf: (C, Button) -> V
 
-    AngleInput*[V] = object of CameraInput[float32]
-        ## rotation values like yaw, pitch, and roll, inside a vector
-        rotation*: V
+    # rotation
 
-        ## the ratio of 360 to the screen dimensions, used to
-        ## coerce screen coordinates into the range of degrees
-        degreeRatio: V
+    Rotation*[I, R] = object of RootObj
+        process: (I) -> R
 
-        ## any additional transformations, most notably
-        ## adding -90 to yaw to make it face -Z, inverting
-        ## pitch as y goes from top-to-bottom on the screen,
-        ## and clamping pitch to avoid unintentional input flipping
-        transform: proc(vector: V): V
+    # camera
 
-        ## converts all the rotations to a usable vector facing
-        ## from the front of the camera
-        toDirection: proc(rotation: V): V
+    MovableCamera*[S, V] = object of RootObj
+        position*: V
+        movement: Movement[S, V]
 
-    Camera*[V] = object of RootObj
-        pos*: V
-        front*, top*: V
+    RotatableCamera*[S, V, I, R] = object of MovableCamera[S, V]
+        front*, top*: R
+        rotation: Rotation[I, R]
 
-        spatialInput*: SpatialInput[V]
-        angleInput*: AngleInput[V]
+    Camera2D* = object of MovableCamera[Camera2D, Vec2]
+    CameraFlat3D* = object of MovableCamera[CameraFlat3D, Vec3]
 
-# properties
+    Camera3D* = object of RotatableCamera[Camera3D, Vec3, IVec2, Vec3]
 
-proc matrix*[V](camera: Camera[V]): Mat4 =
-    result = lookAt(camera.pos, camera.pos + camera.front, camera.top)
+    # concepts
 
-proc right*[V](camera: Camera[V]): V =
+# proc-based properties
+
+proc right*[S](camera: S): auto =
     result = cross(camera.front, camera.top)
 
-# updates
+proc matrix*(camera: Camera2D): Mat3 =
+    result = translate(-camera.position)
 
-proc update*[V](input: SpatialInput[V], view: ButtonView, front, top: V): V =
-    for button in input.effects.keys:
-        if view[button]:
-            let function = input.effects[button]
-            let vector = function(front, top) * input.sensitivity
+proc matrix*(camera: CameraFlat3D): Mat4 =
+    result = translate(vec3(-camera.position.xy, 0f))
 
-            result += vector
+proc matrix*(camera: Camera3D): Mat4 =
+    result = lookAt(camera.position, camera.position + camera.front, camera.top)
 
-proc update*[V](input: var AngleInput[V], previousMouse, currentMouse: V): V =
-    let difference = (currentMouse - previousMouse) * input.degreeRatio * input.sensitivity
-    input.rotation += difference
-    let transformed = input.transform(input.rotation)
+# direct effects
 
-    let direction = input.toDirection(transformed)
-    result = normalize(direction)
+proc move*[S](camera: var S, active: ButtonView) =
+    for button in camera.movement.buttons:
+        if active[button]:
+            let effect = camera.movement.effectOf(camera, button)
+            
+            camera.position += effect
+
+proc rotate*[S, I](camera: var S, input: I) =
+    camera.front = camera.rotation.process(input)
 
 # initialization
 
-proc newCamera*[V](pos, front, top: V, spatialInput: SpatialInput[V], angleInput: AngleInput[V]): Camera[V] =
+## movement
+
+### presets
+
+let
+    # for whatever reason, tables require procs marked with {.closure.}
+    wasdSpaceShift* = {
+        KeyW: (front: Vec3, top: Vec3, right: Vec3) {.closure.} => front,
+        KeyS: (front: Vec3, top: Vec3, right: Vec3) {.closure.} => -front,
+        KeyD: (front: Vec3, top: Vec3, right: Vec3) {.closure.} => right,
+        KeyA: (front: Vec3, top: Vec3, right: Vec3) {.closure.} => -right,
+        KeySpace: (front: Vec3, top: Vec3, right: Vec3) {.closure.} => top,
+        KeyLeftShift: (front: Vec3, top: Vec3, right: Vec3) {.closure.} => -top
+    }.toTable
+
+### flat movement
+
+proc newMovement2D*[C](modifier: float32, effects: Table[Button, Vec2]): Movement[C, Vec2] =
+    var buttons = newSeq[Button]()
+
+    for button in effects.keys:
+        buttons.add(button)
+
+    proc effectOf(camera: C, button: Button): Vec2 =
+        result = effects[button] * modifier
+
     with(result):
-        pos = pos
-        front = front
-        top = top
+        buttons = buttons
+        effectOf = effectOf
 
-        spatialInput = spatialInput
-        angleInput = angleInput
+proc newMovementFlat3D*[C](modifier: float32, effects: Table[Button, Vec3]): Movement[C, Vec3] =
+    var buttons = newSeq[Button]()
 
-proc newSpatialInput2D*(
-    sensitivity: float32,
-    up: Button = KeyW, 
-    down: Button = KeyS, 
-    left: Button = KeyA, 
-    right: Button = KeyD
-): SpatialInput[Vec2] =
+    for button in effects.keys:
+        buttons.add(button)
+
+    proc effectOf(camera: C, button: Button): Vec3 =
+        result = effects[button] * modifier
+
     with(result):
-        sensitivity = sensitivity
+        buttons = buttons
+        effectOf = effectOf
 
-        # why does Nim require {.closure.}
-        effects = {
-            up: proc(front, top: Vec2): Vec2 {.closure.} = top,
-            down: proc(front, top: Vec2): Vec2 {.closure.} = -top,
-            left: proc(front, top: Vec2): Vec2 {.closure.} = -front,
-            right: proc(front, top: Vec2): Vec2 {.closure.} = front
-        }.toTable
+### flat movement
 
-proc newSpatialInput3D*(
-    sensitivity: float32,
-    front: Button = KeyW, 
-    back: Button = KeyS, 
-    left: Button = KeyA, 
-    right: Button = KeyD,
-    up: Button = KeySpace,
-    down: Button = KeyLeftShift
-): SpatialInput[Vec3] =
+proc newMovement3D*(modifier: float32, effects: Table[Button, (front: Vec3, top: Vec3, right: Vec3) -> Vec3]): Movement[Camera3D, Vec3] =
+    var buttons = newSeq[Button]()
+
+    for button in effects.keys:
+        buttons.add(button)
+
+    proc effectOf(camera: Camera3D, button: Button): Vec3 =
+        let function = effects[button]
+        result = function(camera.front, camera.top, camera.right)
+
     with(result):
-        sensitivity = sensitivity
+        buttons = buttons
+        effectOf = effectOf
 
-        effects = {
-            front: proc(front, top: Vec3): Vec3 {.closure.} = front,
-            back: proc(front, top: Vec3): Vec3 {.closure.} = -front,
-            left: proc(front, top: Vec3): Vec3 {.closure.} = -cross(front, top),
-            right: proc(front, top: Vec3): Vec3 {.closure.} = cross(front, top),
-            up: proc(front, top: Vec3): Vec3 {.closure.} = top,
-            down: proc(front, top: Vec3): Vec3 {.closure.} = -top,
-        }.toTable
+## rotation
 
-proc newAngleInput*(sensitivity: float32, windowSize: IVec2): AngleInput[Vec3] =
-    proc transform(vector: Vec3): Vec3 =
+proc newMouseRotation*(modifier: float32, shiftToZ, invertYaw, clampYaw: bool = true): Rotation[IVec2, Vec3] =
+    # individual steps
+
+    proc convert(coordinates: IVec2): Vec2 =
+        result = vec2(coordinates)
+
+    proc ready(vector: Vec2): Vec2 =
         result = vector
 
-        result.x -= 90
+        if shiftToZ:
+            result.x -= 90
 
-        result.y = 360f - result.y
-        result.y = clamp(result.y, -89f, 89f)
+        if invertYaw:
+            result.y = 360 - result.y
 
-    proc toDirection(rotation: Vec3): Vec3 =
+        if clampYaw:
+            result.y = clamp(result.y, -89, 89)
+
+    proc finalize(vector: Vec2): Vec3 =
         let
-            x = cos(rotation.x.toRadians) * cos(rotation.y.toRadians)
-            y = sin(rotation.y.toRadians)
-            z = sin(rotation.x.toRadians) * cos(rotation.y.toRadians)
+            x = cos(vector.x.toRadians) * cos(vector.y.toRadians)
+            y = sin(vector.y.toRadians)
+            z = sin(vector.x.toRadians) * cos(vector.y.toRadians)
 
         vec3(x, y, z)
 
-    with(result):
-        sensitivity = sensitivity
+    # entire operation
 
-        rotation = vec3(0f, 0f, 0f)
-        degreeRatio = vec3(360 / windowSize.x, 360 / windowSize.y, 0f)
-        
-        transform = transform
-        toDirection = toDirection
+    proc process(input: IVec2): Vec3 =
+        let converted = convert(input)
+        let readied = ready(converted)
+        let finalized = finalize(readied)
+
+        result = finalized
+
+    # assignment
+
+    result.process = process
+
+## cameras
+
+proc newCamera2D*(initialPosition: Vec2, movement: Movement[Camera2D, Vec2]): Camera2D =
+    with(result):
+        position = initialPosition
+        movement = movement
+
+proc newCameraFlat3D*(initialPosition: Vec3, movement: Movement[CameraFlat3D, Vec3]): CameraFlat3D =
+    with(result):
+        position = initialPosition
+        movement = movement
+
+proc newCamera3D*(
+    initialPosition: Vec3,
+    movement: Movement[Camera3D, Vec3],
+
+    initialFront, initialTop: Vec3,
+    rotation: Rotation[IVec2, Vec3]
+): Camera3D =
+    with(result):
+        position = initialPosition
+        movement = movement
+
+        front = initialFront
+        top = initialTop
+        rotation = rotation
+
+## cameras
+
+# initialization
