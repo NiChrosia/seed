@@ -64,6 +64,22 @@ proc rotate*[S, I](camera: var S, input: I) =
 ### presets
 
 let
+    wasd* = {
+        KeyW: vec2(0f, 1f),
+        KeyS: vec2(0f, -1f),
+        KeyD: vec2(1f, 0f),
+        KeyA: vec2(-1f, 0f)
+    }.toTable
+
+    wasdSpaceShiftFlat* = {
+        KeyS: vec3(0f, 0f, 1f),
+        KeyW: vec3(0f, 0f, -1f),
+        KeyD: vec3(1f, 0f, 0f),
+        KeyA: vec3(-1f, 0f, 0f),
+        KeySpace: vec3(0f, 1f, 0f),
+        KeyLeftShift: vec3(0f, -1f, 0f)
+    }.toTable
+
     # for whatever reason, tables require procs marked with {.closure.}
     wasdSpaceShift* = {
         KeyW: (front: Vec3, top: Vec3, right: Vec3) {.closure.} => front,
