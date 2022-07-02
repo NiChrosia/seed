@@ -1,4 +1,4 @@
-import seed/graphics/gl, opengl
+import seed/video/backends/gl, opengl, std/strformat
 
 let vertices = @[
     -0.5f, -0.5f, 0f, # bottom-left
@@ -27,4 +27,4 @@ let intended = @[
     0f,    0.5f,  0f, 0f, 0f, 1f  # top
 ]
 
-assert packed == intended, "Packed data (" & $packed & ") did not match intended output! (" & $intended & ")"
+assert packed == intended, &"Packed data ({packed}) did not match intended output! ({intended})"
