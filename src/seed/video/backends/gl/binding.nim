@@ -80,7 +80,7 @@ template declareTextureUsage(kind: GLenum, textureType: typedesc) =
 # intended to be used as Type.isActive
 proc isActive*[T](itemType: typedesc[T]): bool =
     let id = getTypeId(itemType)
-    result = active[id]
+    return active[id]
 
 # declarations
 

@@ -1,4 +1,4 @@
-import ../src/seed/graphics/[gl, images, cameras], windy, shady, opengl, std/[sequtils, math, random, times], vmath
+import ../src/seed/video/backends/gl, ../src/seed/video/[images, cameras], windy, shady, opengl, std/[sequtils, math, random, times], vmath
 
 let window = newWindow("Deca-hexahedron example", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
 
@@ -38,7 +38,7 @@ let
     textureId = program.newTextureUniform("theTexture")
 
 var
-    image = openImage("res/sprites/box.qoi")
+    image = open("res/sprites/box.qoi").read(qoi)
     texture = newTexture2(image)
 
 with(texture, true):

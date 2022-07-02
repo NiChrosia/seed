@@ -1,4 +1,4 @@
-import shared, shaders, opengl, ../../util/seqs, sequtils
+import shared, shaders, opengl, ../../../util/seqs, sequtils
 
 type
     ## A representation of a shader attribute (or input), used to pack data from separate inputs into one seq
@@ -27,7 +27,7 @@ type
 ## inputs
 
 proc newInput*(name: string, length: int): ShaderInput =
-    result = ShaderInput(name: name, length: length)
+    return ShaderInput(name: name, length: length)
 
 # TODO make the lengths after the height less ambiguous-looking
 proc newInputs*(lengths: varargs[tuple[name: string, length: int]]): seq[ShaderInput] =
@@ -41,18 +41,18 @@ proc newInputs*(lengths: varargs[tuple[name: string, length: int]]): seq[ShaderI
 proc newVertexBuffer*[T](dataType: typedesc[T], dataEnum: GLenum, inputs: seq[ShaderInput]): VertexBuffer =
     let handle = register(glCreateBuffers)
 
-    result = VertexBuffer(handle: handle, kind: GL_ARRAY_BUFFER, dataType: dataEnum, dataSize: sizeof(dataType), inputs: inputs)
+    return VertexBuffer(handle: handle, kind: GL_ARRAY_BUFFER, dataType: dataEnum, dataSize: sizeof(dataType), inputs: inputs)
 
 proc newElementBuffer*(): ElementBuffer =
     let handle = register(glCreateBuffers)
 
-    result = ElementBuffer(handle: handle, kind: GL_ELEMENT_ARRAY_BUFFER)
+    return ElementBuffer(handle: handle, kind: GL_ELEMENT_ARRAY_BUFFER)
 
 ## vertex arrays
 
 proc newVertexArray*(buffers: seq[VertexBuffer]): VertexArray =
     let handle = register(glCreateVertexArrays)
-    result = VertexArray(handle: handle, buffers: buffers)
+    return VertexArray(handle: handle, buffers: buffers)
 
 # shader attributes
 

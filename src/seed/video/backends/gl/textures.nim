@@ -1,4 +1,4 @@
-import shared, shaders, uniforms, opengl, ../images, std/with
+import shared, shaders, uniforms, opengl, ../../images, std/with
 
 type
     Texture = object of Handled[uint32]
@@ -29,7 +29,7 @@ template declareFiltering(glProperty: typed, property: untyped) =
 ## declarations
 
 proc hasMipmaps*(texture: Texture): bool =
-    result = texture.minFilter != GL_LINEAR and texture.minFilter != GL_NEAREST
+    return texture.minFilter != GL_LINEAR and texture.minFilter != GL_NEAREST
 
 proc `slot=`*(texture: Texture, kind: GLenum) =
     glActiveTexture(kind)
@@ -81,7 +81,7 @@ template declareTextureConstructor(constructorName: untyped, textureType: typede
             kind = textureKind
 
 proc newTextureUniform*(program: ShaderProgram, name: string): ShaderUniform[int32] =
-    result = program.newUniform(name, updateTextureId)
+    return program.newUniform(name, updateTextureId)
 
 declareTextureConstructor(newTexture1, Texture1, GL_TEXTURE_1D)
 declareTextureConstructor(newTexture2, Texture2, GL_TEXTURE_2D)

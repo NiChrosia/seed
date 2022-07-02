@@ -1,4 +1,4 @@
-import shared, opengl, tables
+import shared, opengl, std/[tables, with]
 
 type
     Shader* = ref object of Handled[uint32]
@@ -33,7 +33,7 @@ proc evaluate[T: Compiled](obj: T, parameter: GLenum): int32 =
     elif T is ShaderProgram:
         glGetProgramiv(obj.handle, parameter, addr value)
 
-    result = value
+    return value
 
 proc compileStatus[T: Compiled](obj: T): bool =
     let intResult = when T is Shader:
@@ -41,7 +41,7 @@ proc compileStatus[T: Compiled](obj: T): bool =
     elif T is ShaderProgram:
         evaluate(obj, GL_LINK_STATUS)
 
-    result = intResult == 1
+    return intResult == 1
 
 proc logLength[T: Compiled](obj: T): int32 =
     evaluate(obj, GL_INFO_LOG_LENGTH)
@@ -89,19 +89,25 @@ proc link*(program: ShaderProgram) =
 proc newShader*(kind: GLenum, source: string): Shader = 
     let handle = glCreateShader(kind)
 
-    result = Shader(handle: handle, kind: kind)
-    result.source = source
+    # it would seem calling `result.property = value` implicitly
+    # initializes the result, requiring manual usage when using `with`
+    result = new(Shader)
 
-    result.compile()
+    with(result):
+        handle = handle
+        kind = kind
+        source = source
+
+        compile()
 
 proc newShader*(kind: GLenum, source: File): Shader =
     let contents = readAll(source)
     
-    result = newShader(kind, contents)
+    return newShader(kind, contents)
 
 proc newProgram*(): ShaderProgram =
     let handle = glCreateProgram()
-    result = ShaderProgram(handle: handle)
+    return ShaderProgram(handle: handle)
 
 proc `vertex=`*(program: ShaderProgram, shader: Shader) =
     let function = case shader == nil:
