@@ -3,7 +3,11 @@ import gl/[
     shaders,
     uniforms,
     textures,
-    binding
+]
+
+import gl/binding/[
+    binding,
+    activity
 ]
 
 export
@@ -11,4 +15,6 @@ export
     shaders,
     uniforms,
     textures,
-    binding
+
+    binding,
+    activity

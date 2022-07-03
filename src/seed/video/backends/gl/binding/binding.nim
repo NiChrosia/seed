@@ -1,18 +1,14 @@
-import shared, buffers, shaders, textures, opengl, tables, variant
-
-let active = newTable[TypeId, bool]([])
+import ../shared, ../buffers, ../shaders, ../textures, opengl, activity, std/tables
 
 # usage
 
 template declareUsage(bindProc: typed, usedType: typedesc) =
-    let id = getTypeId(usedType)
-
     proc use*(item: usedType) =
-        active[id] = true
+        usedType.active = true
         bindProc(item.handle)
 
     proc dismiss*(itemType: typedesc[usedType]) =
-        active[id] = false
+        usedType.active = false
         bindProc(0)
 
     # explicitly uses the `usedType` rather than `typed` to avoid conflicts with the standard library's `with`
@@ -74,13 +70,6 @@ template declareTextureUsage(kind: GLenum, textureType: typedesc) =
 
         texture.slot = asEnum
         use(texture)
-
-# activity
-
-# intended to be used as Type.isActive
-proc isActive*[T](itemType: typedesc[T]): bool =
-    let id = getTypeId(itemType)
-    return active[id]
 
 # declarations
 

@@ -1,4 +1,4 @@
-import shaders, opengl, vmath, sugar
+import shaders, binding/activity, opengl, vmath, std/[sugar]
 
 type
     ShaderUniform*[T] = object of RootObj
@@ -17,8 +17,7 @@ let
 proc newUniform*[T](program: ShaderProgram, name: string, rawUpdate: (int32, T) -> void): ShaderUniform[T] =
     let location = glGetUniformLocation(program.handle, name.cstring)
     let update = proc(value: T) =
-        # implementing bind checks will require moving all types to a unified file, which is currently nonexistent
-        #assert(ShaderProgram.isActive, "There is no shader program active, so a uniform cannot be updated!")
+        assert(ShaderProgram.active, "There is no shader program active, so a uniform cannot be updated!")
 
         rawUpdate(location, value)
 
