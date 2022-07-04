@@ -65,7 +65,7 @@ let slotConversions = {
 template declareTextureUsage(kind: GLenum, textureType: typedesc) =
     declareTypedUsage(kind, glBindTexture, textureType)
 
-    proc use*(texture: textureType, slot: int8) =
+    proc use*(texture: textureType, slot: int) =
         let asEnum = slotConversions[slot]
 
         texture.slot = asEnum

@@ -40,7 +40,7 @@ proc matrix*(camera: Camera2D): Mat3 =
     result = translate(-camera.position)
 
 proc matrix*(camera: CameraFlat3D): Mat4 =
-    result = translate(vec3(-camera.position.xy, 0f))
+    result = translate(-camera.position)
 
 proc matrix*(camera: Camera3D): Mat4 =
     result = lookAt(camera.position, camera.position + camera.front, camera.top)

@@ -29,7 +29,6 @@ type
 proc newInput*(name: string, length: int): ShaderInput =
     return ShaderInput(name: name, length: length)
 
-# TODO make the lengths after the height less ambiguous-looking
 proc newInputs*(lengths: varargs[tuple[name: string, length: int]]): seq[ShaderInput] =
     for pair in lengths:
         let (name, length) = pair

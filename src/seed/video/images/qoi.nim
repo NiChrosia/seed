@@ -20,8 +20,8 @@ proc readQoi*(bytes: seq[byte]): Image =
 
 proc writeQoi*(image: Image): seq[byte] =
     let
-        width = image.size[0].uint32
-        height = image.size[1].uint32
+        width = image.width.uint32
+        height = image.height.uint32
 
         channels = image.channels.uint8
         colorspace = image.colorspace.uint8
