@@ -148,9 +148,9 @@ window.onFrame = proc() =
 
     view.update(camera.matrix)
 
-    for i in 0 .. 9:
-        randomize(i)
+    randomize(0)
 
+    for i in 0 .. 9:
         let x = rotateX(rand(i * 40).float32.toRadians)
         let y = rotateY(rand(i * 40).float32.toRadians)
         let translate = translate(vec3(rand(1f..5f), rand(1f..5f), rand(1f..5f)))

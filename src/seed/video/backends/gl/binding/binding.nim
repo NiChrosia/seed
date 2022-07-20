@@ -12,7 +12,7 @@ template declareUsage(bindProc: typed, usedType: typedesc) =
         bindProc(0)
 
     # explicitly uses the `usedType` rather than `typed` to avoid conflicts with the standard library's `with`
-    template with*(item: usedType, shouldDismiss: typed, body: varargs[untyped]) =
+    template with*(item: usedType, shouldDismiss: bool, body: varargs[untyped]) =
         use(item)
 
         body
