@@ -1,4 +1,4 @@
-import vmath, shady, windy, opengl, std/[macros, genasts, strformat]
+import macroutils, vmath, shady, windy, opengl, std/[macros, genasts, strformat], ../src/seed/video/backends/gl/shaders
 
 type
     # distinct types cannot be used otherwise it dies
@@ -12,7 +12,7 @@ type
         offset: int32
     
         length: int32
-        indexOffset: int
+        indexOffset: uint32
     
 proc kindOf(symbol: NimNode, fieldNode: NimNode): AltGlEnum =
     let name = symbol.strVal()
@@ -47,7 +47,7 @@ proc indexOf(program: uint32, name: string): uint32 =
 
     return uint32(intLocation)
 
-proc attribPtr(index: uint32, altKind: AltGlEnum, length, offset, stride: int32) =
+proc attributePointer(index: uint32, altKind: AltGlEnum, length, offset, stride: int32) =
     let kind = GlEnum(altKind)
 
     glVertexAttribPointer(index, length, kind, false, stride, cast[pointer](offset))
@@ -61,34 +61,46 @@ proc length(arrayNode: NimNode): int =
 
 proc addAttribute(attributes: var seq[Attribute], name: string, kind: AltGlEnum, offset: int32) =
     var attribute = Attribute()
-    attribute.name = name
-    attribute.kind = kind
-    attribute.offset = offset
+    attribute.assign(name, kind, offset)
     attribute.length = 1
     
     attributes.add(attribute)
 
 proc addVector(attributes: var seq[Attribute], name: string, kind: AltGlEnum, offset: int32, height: int32) =
     var attribute = Attribute()
-    attribute.name = name
-    attribute.kind = kind
-    attribute.offset = offset
+    attribute.assign(name, kind, offset)
     attribute.length = height
     
     attributes.add(attribute)
 
 proc addMatrix(attributes: var seq[Attribute], name: string, kind: AltGlEnum, offset: int32, width, height: int32) =
-    for indexOffset in 0 ..< height:
+    for indexOffset in 0 ..< uint32(height):
         var attribute = Attribute()
-        attribute.name = name
-        attribute.kind = kind
-        attribute.offset = offset
+        attribute.assign(name, kind, offset, indexOffset)
         attribute.length = width
-        attribute.indexOffset = indexOffset
         
         attributes.add(attribute)
 
 macro declareVertexPointers(vertex: typedesc, program: uint): untyped =
+    # typedesc symbol (vertex):
+    #[
+        Sym "[type name]"
+    ]#
+    # typedesc node (vertex.getType()):
+    #[
+        Something
+            Sym "typeDesc"
+            Sym "[type name]"
+    ]#
+    # type node (vertex.getType()[1].getType()):
+    #[
+        ObjectTy
+            Empty
+            Empty
+            RecList
+                Sym "[field name]"
+    ]#
+
     let typeNode = vertex.getType()[1].getType()
     let fields = typeNode[2]
     
@@ -100,10 +112,22 @@ macro declareVertexPointers(vertex: typedesc, program: uint): untyped =
         let fieldTypeNode = field.getType()
         
         if fieldTypeNode.kind == nnkBracketExpr:
+            # bracket expression node:
+            #[
+                BracketExpr
+                    Sym "[outer]"
+                    Sym "[inner]"
+            ]#
+            if fieldTypeNode[0].strVal() != "array":
+                error("Non-array bracketed types are not currently supported.", field)
+
             let height = int32(fieldTypeNode.length())
             let trueTypeNode = fieldTypeNode[2]
             
             if trueTypeNode.kind == nnkBracketExpr:
+                if trueTypeNode[0].strVal() != "array":
+                    error("Non-array nested bracketed types are not currently supported.", field)
+
                 let width = int32(trueTypeNode.length())
                 let realTypeNode = trueTypeNode[2]
                 
@@ -126,18 +150,20 @@ macro declareVertexPointers(vertex: typedesc, program: uint): untyped =
         for a in attributes:
             let index = program.indexOf(a.name)
 
-            attribPtr(index, a.kind, a.length, a.offset, vertexSize)
+            attributePointer(index + a.indexOffset, a.kind, a.length, a.offset, vertexSize)
+            # seriously, why does this function exist
+            glEnableVertexAttribArray(index)
 
 type
     Vertex = object
-        position: array[2, float32]
+        position: array[3, float32]
 
-proc vertex(gl_Position: var Vec4, vPos: var Vec4, position: Vec2) =
-    gl_Position = vec4(vec3(position, 0f), 0f)
-    vPos = gl_Position
+proc vertex(gl_Position: var Vec4, vColor: var Vec4, position: Vec3) =
+    gl_Position = vec4(position, 1f)
+    vColor = vec4(position.xyx, 1f)
 
-proc fragment(FragColor: var Vec4, vPos: Vec4) =
-    FragColor = vPos
+proc fragment(FragColor: var Vec4, vColor: Vec4) =
+    FragColor = vColor
 
 let window = newWindow("Test", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
 
@@ -145,34 +171,54 @@ window.makeContextCurrent()
 loadExtensions()
 
 var
-    vertexSource = toGLSL(vertex, "330", "")
-    fragmentSource = toGLSL(fragment, "330", "")
+    vertexShader = newShader(GlVertexShader, toGLSL(vertex))
+    fragmentShader = newShader(GlFragmentShader, toGLSL(fragment))
 
-var
-    vertexShader = glCreateShader(GlVertexShader)
-    fragmentShader = glCreateShader(GlFragmentShader)
+    program = newProgram()
 
-var sourceArray: cstringArray
+program.shaders = (vertexShader, fragmentShader)
+program.link()
 
-sourceArray = allocCStringArray([vertexSource])
-glShaderSource(vertexShader, 1, sourceArray, nil)
-deallocCStringArray(sourceArray)
+proc vertex(x, y, z: float32): Vertex =
+    return Vertex(position: [x, y, z])
 
-sourceArray = allocCStringArray([fragmentSource])
-glShaderSource(fragmentShader, 1, sourceArray, nil)
-deallocCStringArray(sourceArray)
+var vertices = [
+    vertex(-1f, -1f, 0f),
+    vertex(-1f,  1f, 0f),
+    vertex( 1f, -1f, 0f),
+    vertex( 1f,  1f, 0f)
+]
 
-glCompileShader(vertexShader)
-glCompileShader(fragmentShader)
-
-var program = glCreateProgram()
-
-glAttachShader(program, vertexShader)
-glAttachShader(program, fragmentShader)
-
-glLinkProgram(program)
+var indices = [
+    uint32(0), 1, 2,
+    1, 2, 3
+]
 
 var vertexArray: uint32
 glGenVertexArrays(1, addr vertexArray)
 
-declareVertexPointers(Vertex, program)
+var vertexBuffer, elementBuffer: uint32
+glGenBuffers(1, addr vertexBuffer)
+glGenBuffers(1, addr elementBuffer)
+
+glBindVertexArray(vertexArray)
+
+glBindBuffer(GlArrayBuffer, vertexBuffer)
+glBufferData(GlArrayBuffer, sizeof(vertices), addr vertices[0], GL_STATIC_DRAW)
+
+glBindBuffer(GlElementArrayBuffer, elementBuffer)
+glBufferData(GlElementArrayBuffer, sizeof(indices), addr indices[0], GL_STATIC_DRAW)
+
+declareVertexPointers(Vertex, program.handle)
+
+while not window.closeRequested:
+    glClearColor(0.2f, 0.3f, 0.3f, 1f)
+    glClear(GL_COLOR_BUFFER_BIT)
+
+    glUseProgram(program.handle)
+    glBindVertexArray(vertexArray)
+
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nil)
+
+    window.swapBuffers()
+    pollEvents()
