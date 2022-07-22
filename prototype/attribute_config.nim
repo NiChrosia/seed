@@ -13,7 +13,7 @@ type
     
         length: int32
         indexOffset: uint32
-    
+
 proc kindOf(symbol: NimNode, fieldNode: NimNode): AltGlEnum =
     let name = symbol.strVal()
     let normalEnum = case name
@@ -88,7 +88,7 @@ macro declareVertexPointers(vertex: typedesc, program: uint): untyped =
     ]#
     # typedesc node (vertex.getType()):
     #[
-        Something
+        BracketExpr
             Sym "typeDesc"
             Sym "[type name]"
     ]#

@@ -29,3 +29,17 @@ macro assign*(value: typed, fields: varargs[typed]): untyped =
     #       Ident "[value name]"
     #       Ident "[field name]"
     #     Ident "[field name]"
+
+macro copy*(source, destination: typed, fields: varargs[untyped]): untyped =
+    ## Assigns properties from source to destination, in the
+    ## same manner as assign.
+
+    result = newStmtList()
+
+    for field in fields:
+        let destinationAccess = newDotExpr(destination, field)
+        let sourceAccess = newDotExpr(source, field)
+
+        let assignment = newAssignment(destinationAccess, sourceAccess)
+
+        result.add assignment
