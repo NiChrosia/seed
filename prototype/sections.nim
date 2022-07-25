@@ -21,9 +21,12 @@ proc setSlice*(handle: uint32, offset, size: int32, data: pointer) =
     glBindBuffer(utilityBuffer, handle)
     glBufferSubData(utilityBuffer, offset, size, data)
 
-proc allocateWhole*(handle: uint32, newSize: int32, usage: GlEnum) =
+proc setWhole*(handle: uint32, size: int32, data: pointer, usage: GlEnum) =
     glBindBuffer(utilityBuffer, handle)
-    glBufferData(utilityBuffer, newSize, nil, usage)
+    glBufferData(utilityBuffer, size, data, usage)
+
+proc allocateWhole*(handle: uint32, newSize: int32, usage: GlEnum) =
+    setWhole(handle, newSize, nil, usage)
 
 # init
 

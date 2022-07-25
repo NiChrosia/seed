@@ -1,4 +1,4 @@
-import macroutils, vmath, shady, windy, opengl, std/[macros, genasts, strformat], ../src/seed/video/backends/gl/shaders
+import vmath, shady, windy, opengl, std/[macros, genasts, strformat, times, terminal], ../src/seed/video/backends/gl/shaders
 
 type
     Vector*[height: static[int], T] = array[height, T]
@@ -30,8 +30,8 @@ proc getGlTypeFor(name: string): uint32 =
     return uint32(asEnum)
 
 proc attributePointer(index: uint32, kind: uint32, offset, length, stride: int32, instanced: bool) =
-    glVertexAttribPointer(index, length, GlEnum(kind), false, stride, cast[pointer](offset))
     glEnableVertexAttribArray(index)
+    glVertexAttribPointer(index, length, GlEnum(kind), false, stride, cast[pointer](offset))
 
     if instanced:
         glVertexAttribDivisor(index, 1)
@@ -49,7 +49,7 @@ proc attributePointerCall(
 
         let index = glGetAttribLocation(program, cName)
         let uIndex = uint32(index) + indexOffset
-
+        
         attributePointer(uIndex, kind, offset, length, stride, instanced)
 
 macro declareAttributes(program: uint32, attributeRepr: typedesc, instanced: bool = false): untyped =
@@ -116,22 +116,32 @@ macro declareAttributes(program: uint32, attributeRepr: typedesc, instanced: boo
                 let width = int32(fieldType[1].intVal())
                 let height = uint32(fieldType[2].intVal())
 
-                let glTypeName = fieldType[3].strVal()
+                let glTypeNode = fieldType[3]
+                let glTypeName = glTypeNode.strVal()
                 let glType = getGlTypeFor(glTypeName)
 
+                let glTypeSize = int32(glTypeNode.getSize())
+
                 for indexOffset in 0 ..< height:
-                    result.add attributePointerCall(program, fieldName, glType, fieldOffset, width, typeSize, indexOffset, instanced)
+                    let offset = fieldOffset + glTypeSize * width * int32(indexOffset)
+
+                    result.add attributePointerCall(program, fieldName, glType, offset, width, typeSize, indexOffset, instanced)
             of "SquareMatrix":
                 # this type looks much the same,
                 # albeit with only one int literal,
                 # which is the width and height
                 let width = int32(fieldType[1].intVal())
 
-                let glTypeName = fieldType[2].strVal()
+                let glTypeNode = fieldType[2]
+                let glTypeName = glTypeNode.strVal()
                 let glType = getGlTypeFor(glTypeName)
 
+                let glTypeSize = int32(glTypeNode.getSize())
+
                 for indexOffset in 0 ..< uint32(width):
-                    result.add attributePointerCall(program, fieldName, glType, fieldOffset, width, typeSize, indexOffset, instanced)
+                    let offset = fieldOffset + glTypeSize * width * int32(indexOffset)
+
+                    result.add attributePointerCall(program, fieldName, glType, offset, width, typeSize, indexOffset, instanced)
             of "Vector":
                 # and a vector type looks like
                 #     BracketExpr
@@ -147,8 +157,6 @@ macro declareAttributes(program: uint32, attributeRepr: typedesc, instanced: boo
         else:
             error("Unrecognized attribute type!", fieldType)
 
-    echo result.treeRepr()
-
 
 # -------------------------------------
 
@@ -158,14 +166,7 @@ type
         color: Vector[4, float32]
 
     Triangle = object
-        layer: float32
-
-proc vertex(gl_Position: var Vec4, vColor: var Vec4, position: Vec2, color: Vec4, layer: float) =
-    gl_Position = vec4(vec3(position, layer), 1f)
-    vColor = color
-
-proc fragment(FragColor: var Vec4, vColor: Vec4) =
-    FragColor = vColor
+        transform: SquareMatrix[4, float32]
 
 let window = newWindow("Test", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
 
@@ -173,8 +174,29 @@ window.makeContextCurrent()
 loadExtensions()
 
 var
-    vertexShader = newShader(GlVertexShader, toGLSL(vertex))
-    fragmentShader = newShader(GlFragmentShader, toGLSL(fragment))
+    vertexShader = newShader(GlVertexShader, """#version 330
+
+in vec2 position;
+in vec4 color;
+in mat4 transform;
+
+out vec4 vColor;
+
+void main() {
+    gl_Position = transform * vec4(vec3(position, 0.0), 1.0);
+    vColor = color;
+}
+""")
+    fragmentShader = newShader(GlFragmentShader, """#version 330
+
+in vec4 vColor;
+
+out vec4 FragColor;
+
+void main() {
+    FragColor = vColor;
+}
+""")
 
     program = newProgram()
 
@@ -185,15 +207,13 @@ proc vertex(x, y: float32, color: array[4, float32]): Vertex =
     return Vertex(position: [x, y], color: color)
 
 var vertices = [
-    vertex(-1f, -1f, [1f, 0f, 0f, 1f]),
-    vertex(-1f,  1f, [0f, 0f, 1f, 1f]), 
-    vertex( 1f, -1f, [1f, 0f, 0f, 1f]),
+    vertex(-1f, -1f, [0f, 0f, 1f, 1f]),
+    vertex(-1f,  1f, [0f, 0f, 0f, 1f]), 
+    vertex( 1f, -1f, [0f, 0f, 0f, 1f]),
     vertex( 1f,  1f, [0f, 0f, 1f, 1f])
 ]
 
-var instanceData = [
-    0f # layer
-]
+var instanceData = translate(vec3(-0.5f, 0f, 0f)) * scale(vec3(0.5f, 0.5f, 1f))
 
 var indices = [
     uint32(0), 1, 2,
@@ -216,7 +236,7 @@ glBufferData(GlArrayBuffer, sizeof(vertices), addr vertices[0], GL_STATIC_DRAW)
 declareAttributes(program.handle, Vertex)
 
 glBindBuffer(GlArrayBuffer, instanceBuffer)
-glBufferData(GlArrayBuffer, sizeof(instanceData), addr instanceData[0], GL_STATIC_DRAW)
+glBufferData(GlArrayBuffer, sizeof(Mat4), addr instanceData[0, 0], GL_STATIC_DRAW)
 
 declareAttributes(program.handle, Triangle, true)
 
@@ -230,7 +250,7 @@ while not window.closeRequested:
     glUseProgram(program.handle)
     glBindVertexArray(vertexArray)
 
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nil)
+    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nil, 1)
 
     window.swapBuffers()
     pollEvents()
