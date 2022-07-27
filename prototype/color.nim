@@ -8,10 +8,10 @@ import std/[times]
 
 proc processVertex(
     gl_Position: var Vec4, vColor: var Vec4, 
-    pos: Vec2, color: Vec4, layer: float, transform: Mat4,
+    pos: Vec2, color: Vec4, transform: Mat4,
     view: Uniform[Mat4], project: Uniform[Mat4]
 ) =
-    gl_Position = project * view * transform * vec4(pos.x, pos.y, layer, 1f)
+    gl_Position = project * view * transform * vec4(vec3(pos, 0f), 1f)
     vColor = color
 
 proc processFragment(FragColor: var Vec4, vColor: Vec4) =
@@ -48,12 +48,10 @@ type
 
     TriangleRepr = object
         color: Vector[4, float32]
-        layer: float32
         transform: SquareMatrix[4, float32]
 
     Triangle = object
         color: Vec4
-        layer: float32
         transform: Mat4
 
 type
@@ -61,7 +59,7 @@ type
         shape*: S
         offset*: int32
 
-proc triangle(transform: Mat4, color: Vec4, layer: float32): WrappedShape[Triangle] =
+proc triangle(transform: Mat4, color: Vec4): WrappedShape[Triangle] =
     once:
         let vertices: array[3, Vector[2, float32]] = [
             [-1f, -1f],
@@ -72,7 +70,7 @@ proc triangle(transform: Mat4, color: Vec4, layer: float32): WrappedShape[Triang
         discard triVertices.add(vertices)
     
     block:
-        let triangle = Triangle(color: color, layer: layer, transform: transform)
+        let triangle = Triangle(color: color, transform: transform)
         let offset = triProperties.add(triangle)
 
         result = WrappedShape[Triangle](shape: triangle, offset: offset)
@@ -81,7 +79,7 @@ proc triangle(transform: Mat4, color: Vec4, layer: float32): WrappedShape[Triang
         let indices: array[3, uint32] = [0'u32, 1, 2]
         discard triElements.add(indices)
 
-discard triangle(mat4(), vec4(1f, 0f, 1f, 1f), 0f)
+discard triangle(mat4(), vec4(1f, 0f, 1f, 1f))
 
 glBindVertexArray(configuration)
 
@@ -124,7 +122,7 @@ proc handleMousePress() =
             let angle = arctan2(
                 -camera.front.z,
                 -camera.front.x
-            ) + 90f
+            ) + float32(PI) / 2f
 
             let rotation = rotateY(angle)
 
@@ -139,7 +137,7 @@ proc handleMousePress() =
 
             vec4(red, green, blue, 1f)
 
-        discard triangle(matrix, color, 0f)
+        discard triangle(matrix, color)
         inc triangleCount
 
 window.onMouseMove = proc() =
