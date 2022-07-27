@@ -126,20 +126,12 @@ var
 
     camera = newCamera3D(vec3(0f, 0f, 15f), movement, vec3(0f, 0f, -1f), vec3(0f, 1f, 0f), rotation)
 
-var
-    deltaTime = 0f
-    lastFrame = 0f
-
 proc handleInput() =
     camera.move(window.buttonDown)
 
 window.onFrame = proc() =
     glClearColor(0f, 0f, 0f, 1f)
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
-
-    let currentFrame = epochTime()
-    deltaTime = currentFrame - lastFrame
-    lastFrame = currentFrame
 
     use(texture, 0)
 

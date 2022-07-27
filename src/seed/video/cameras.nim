@@ -141,7 +141,7 @@ proc newMouseRotation*(modifier: float32, shiftToZ, invertYaw, clampYaw: bool = 
 
     proc convert(coordinates: IVec2): Vec2 =
         result = vec2(coordinates)
-
+        
     proc ready(vector: Vec2): Vec2 =
         result = vector
 

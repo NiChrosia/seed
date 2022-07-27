@@ -1,4 +1,4 @@
-import vmath, shady, windy, opengl, std/[macros, genasts, strformat, times, terminal], ../src/seed/video/backends/gl/shaders
+import vmath, windy, opengl, std/[macros, genasts, strformat, times]
 
 type
     Vector*[height: static[int], T] = array[height, T]
@@ -49,10 +49,10 @@ proc attributePointerCall(
 
         let index = glGetAttribLocation(program, cName)
         let uIndex = uint32(index) + indexOffset
-        
+
         attributePointer(uIndex, kind, offset, length, stride, instanced)
 
-macro declareAttributes(program: uint32, attributeRepr: typedesc, instanced: bool = false): untyped =
+macro declareAttributes*(program: uint32, attributeRepr: typedesc, instanced: bool = false): untyped =
     # a typedesc looks like this
     #   Sym "[type name]"
 
@@ -156,101 +156,3 @@ macro declareAttributes(program: uint32, attributeRepr: typedesc, instanced: boo
                 result.add attributePointerCall(program, fieldName, glType, fieldOffset, height, typeSize, 0, instanced)
         else:
             error("Unrecognized attribute type!", fieldType)
-
-
-# -------------------------------------
-
-type
-    Vertex = object
-        position: Vector[2, float32]
-        color: Vector[4, float32]
-
-    Triangle = object
-        transform: SquareMatrix[4, float32]
-
-let window = newWindow("Test", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
-
-window.makeContextCurrent()
-loadExtensions()
-
-var
-    vertexShader = newShader(GlVertexShader, """#version 330
-
-in vec2 position;
-in vec4 color;
-in mat4 transform;
-
-out vec4 vColor;
-
-void main() {
-    gl_Position = transform * vec4(vec3(position, 0.0), 1.0);
-    vColor = color;
-}
-""")
-    fragmentShader = newShader(GlFragmentShader, """#version 330
-
-in vec4 vColor;
-
-out vec4 FragColor;
-
-void main() {
-    FragColor = vColor;
-}
-""")
-
-    program = newProgram()
-
-program.shaders = (vertexShader, fragmentShader)
-program.link()
-
-proc vertex(x, y: float32, color: array[4, float32]): Vertex =
-    return Vertex(position: [x, y], color: color)
-
-var vertices = [
-    vertex(-1f, -1f, [0f, 0f, 1f, 1f]),
-    vertex(-1f,  1f, [0f, 0f, 0f, 1f]), 
-    vertex( 1f, -1f, [0f, 0f, 0f, 1f]),
-    vertex( 1f,  1f, [0f, 0f, 1f, 1f])
-]
-
-var instanceData = translate(vec3(-0.5f, 0f, 0f)) * scale(vec3(0.5f, 0.5f, 1f))
-
-var indices = [
-    uint32(0), 1, 2,
-    1, 2, 3
-]
-
-var vertexArray: uint32
-glGenVertexArrays(1, addr vertexArray)
-
-var vertexBuffer, elementBuffer, instanceBuffer: uint32
-glGenBuffers(1, addr vertexBuffer)
-glGenBuffers(1, addr elementBuffer)
-glGenBuffers(1, addr instanceBuffer)
-
-glBindVertexArray(vertexArray)
-
-glBindBuffer(GlArrayBuffer, vertexBuffer)
-glBufferData(GlArrayBuffer, sizeof(vertices), addr vertices[0], GL_STATIC_DRAW)
-
-declareAttributes(program.handle, Vertex)
-
-glBindBuffer(GlArrayBuffer, instanceBuffer)
-glBufferData(GlArrayBuffer, sizeof(Mat4), addr instanceData[0, 0], GL_STATIC_DRAW)
-
-declareAttributes(program.handle, Triangle, true)
-
-glBindBuffer(GlElementArrayBuffer, elementBuffer)
-glBufferData(GlElementArrayBuffer, sizeof(indices), addr indices[0], GL_STATIC_DRAW)
-
-while not window.closeRequested:
-    glClearColor(0.2f, 0.3f, 0.3f, 1f)
-    glClear(GL_COLOR_BUFFER_BIT)
-
-    glUseProgram(program.handle)
-    glBindVertexArray(vertexArray)
-
-    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nil, 1)
-
-    window.swapBuffers()
-    pollEvents()

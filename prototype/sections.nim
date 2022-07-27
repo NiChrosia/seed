@@ -133,7 +133,7 @@ proc newSection*(buffer: var Buffer, startSize: int32 = 64): Section =
 
 # op
 
-proc add*[S](section: var Section, shape: var S): int32 =
+proc add*[S](section: var Section, shape: S): int32 =
     ## adds an object to the buffer, and returns
     ## the offset, to allow future modification
     result = section.occupied
@@ -142,7 +142,7 @@ proc add*[S](section: var Section, shape: var S): int32 =
 
     section.checkSize(size)
 
-    setSlice(section.buffer.handle, section.offset + section.occupied, size, addr shape)
+    setSlice(section.buffer.handle, section.offset + section.occupied, size, unsafeAddr shape)
     section.occupied += size
 
 # debug
