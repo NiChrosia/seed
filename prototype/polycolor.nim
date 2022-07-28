@@ -1,4 +1,4 @@
-import sections, attributes
+import buffers, attributes
 import ../src/seed/video/backends/gl
 
 import opengl
@@ -9,11 +9,9 @@ import std/[tables, strformat]
 # utility
 type
     ShapeBuffers = ref object
-        vertices, properties, indices: sections.Buffer
-
-    ShapeSections = ref object
         sides, count: int32
-        vertices, properties, indices: Section
+
+        vertices, properties, indices: buffers.Buffer
 
     WrappedShape*[S] = object
         shape: S
@@ -47,21 +45,14 @@ proc processFragment(FragColor: var Vec4, vColor: Vec4) =
 
 # utility
 
-proc newShapeBuffers(usage: GlEnum): ShapeBuffers =
+proc newShapeBuffers(usage: GlEnum, sides: int32): ShapeBuffers =
     result = new(ShapeBuffers)
-
-    result.vertices = newBuffer(GlDynamicDraw)
-    result.properties = newBuffer(GlDynamicDraw)
-    result.indices = newBuffer(GlDynamicDraw)
-
-proc newShapeSections(buffers: var ShapeBuffers, sides: int32): ShapeSections =
-    result = new(ShapeSections)
 
     result.sides = sides
 
-    result.vertices = buffers.vertices.newSection()
-    result.properties = buffers.properties.newSection()
-    result.indices = buffers.indices.newSection()
+    result.vertices = newBuffer(usage)
+    result.properties = newBuffer(usage)
+    result.indices = newBuffer(usage)
 
 # end utility
 
@@ -70,10 +61,6 @@ var
     program*: ShaderProgram
 
     view*, project*: ShaderUniform[Mat4]
-
-    buffers: ShapeBuffers
-
-    configuration: uint32
 
 proc initialize*() =
     # shaders
@@ -88,45 +75,37 @@ proc initialize*() =
     view = program.newUniform[:Mat4]("view", updateMatrix)
     project = program.newUniform[:Mat4]("project", updateMatrix)
 
-    # buffers
-    buffers = newShapeBuffers(GlDynamicDraw)
-
-    # vertex array
-    glGenVertexArrays(1, addr configuration)
-
-proc configure*() =
-    var firstTime {.global.} = true
-
-    glBindVertexArray(configuration)
-
-    if firstTime:
-        glBindBuffer(GlArrayBuffer, buffers.vertices.handle)
-        declareAttributes(program.handle, PolyVertex)
-
-        glBindBuffer(GlArrayBuffer, buffers.properties.handle)
-        declareAttributes(program.handle, PolyRepr, true)
-
-        glBindBuffer(GlElementArrayBuffer, buffers.indices.handle)
-    else:
-        glBindBuffer(GlArrayBuffer, buffers.vertices.handle)
-        glBindBuffer(GlArrayBuffer, buffers.properties.handle)
-
-        glBindBuffer(GlElementArrayBuffer, buffers.indices.handle)
-
 # shape functions
 
-var sectionsBySides = initTable[int, ShapeSections]()
+var configurationBySides = initTable[int, uint32]()
+var buffersBySides = initTable[int, ShapeBuffers]()
 
 proc poly*(sides: static[int], color: Vec4, model: Mat4 = mat4()): WrappedShape[Poly] =
     # create sections if they don't already exist
-    var sections: ShapeSections
-    let firstUsage = not sectionsBySides.contains(sides)
+    var buffers: ShapeBuffers
+    let firstUsage = not buffersBySides.contains(sides)
 
     if firstUsage:
-        sections = buffers.newShapeSections(sides)
-        sectionsBySides[sides] = sections
+        # initialization
+        var configuration: uint32
+        glGenVertexArrays(1, addr configuration)
+        configurationBySides[sides] = configuration
+
+        buffers = newShapeBuffers(GlDynamicDraw, sides)
+        buffersBySides[sides] = buffers
+
+        # state configuration
+        glBindVertexArray(configuration)
+
+        buffers.vertices.bindTo(GlArrayBuffer)
+        declareAttributes(program.handle, PolyVertex)
+
+        buffers.properties.bindTo(GlArrayBuffer)
+        declareAttributes(program.handle, PolyRepr, true)
+
+        buffers.indices.bindTo(GlElementArrayBuffer)
     else:
-        sections = sectionsBySides[sides]
+        buffers = buffersBySides[sides]
 
     # the vertex data is reused for each shape,
     # so we only need to do it once
@@ -148,10 +127,10 @@ proc poly*(sides: static[int], color: Vec4, model: Mat4 = mat4()): WrappedShape[
         # the center is also the first vertex, so we
         # need to add it as such
         const center = vec2()
-        discard sections.vertices.add(center)
+        discard buffers.vertices.add(center)
 
         # and now we add the corners
-        discard sections.vertices.add(corners)
+        discard buffers.vertices.add(corners)
         echo "adding corners!" & " size: " & $sizeof(corners)
         echo corners
 
@@ -159,7 +138,7 @@ proc poly*(sides: static[int], color: Vec4, model: Mat4 = mat4()): WrappedShape[
     result.shape = poly
     echo "adding poly!" & " size: " & $sizeof(poly)
     echo poly
-    result.offset = sections.properties.add(poly)
+    result.offset = buffers.properties.add(poly)
 
     # and now for the indices
     const center = 0'u32
@@ -175,15 +154,18 @@ proc poly*(sides: static[int], color: Vec4, model: Mat4 = mat4()): WrappedShape[
 
     echo "adding triangle indices!" & " size: " & $sizeof(triangles)
     echo triangles
-    discard sections.indices.add(triangles)
+    discard buffers.indices.add(triangles)
 
-    sections.count += 1
+    buffers.count += 1
 
 proc drawPolygons*() =
     glUseProgram(program.handle)
-    glBindVertexArray(configuration)
 
-    for sections in sectionsBySides.values:
-        echo fmt"drawing: (GlTriangles, 3 * {sections.sides}, GlUnsignedInt, {sections.indices.offset}, {sections.count})"
-        # huge problem with this implementation: you can't specify offsets for the vertex & property buffers, thus making this system impossible
-        glDrawElementsInstanced(GlTriangles, 3'i32 * sections.sides, GlUnsignedInt, cast[pointer](uint32(sections.indices.offset)), sections.count)
+    for sides in buffersBySides.keys:
+        let configuration = configurationBySides[sides]
+        let buffers = buffersBySides[sides]
+
+        glBindVertexArray(configuration)
+
+        echo fmt"drawing: (GlTriangles, 3 * {buffers.sides}, GlUnsignedInt, nil, {buffers.count})"
+        glDrawElementsInstanced(GlTriangles, 3'i32 * buffers.sides, GlUnsignedInt, nil, buffers.count)

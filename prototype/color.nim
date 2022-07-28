@@ -1,7 +1,7 @@
 ## A module providing buffers, sections, and construction procs
 ## to easily allow creation of colored polygons.
 
-import sections, vmath, windy, opengl
+import buffers, vmath, windy, opengl
 import ../src/seed/video/backends/gl
 import ../src/seed/video/[cameras]
 import std/[times]
@@ -14,7 +14,6 @@ window.makeContextCurrent()
 loadExtensions()
 
 polycolor.initialize()
-polycolor.configure()
 
 var
     movement = newMovement3D(0.5f, wasdSpaceShift)
@@ -26,8 +25,6 @@ with(polycolor.program, false):
     polycolor.view.update(mat4())
     polycolor.project.update(perspective(45f, window.size.x / window.size.y, 0.1f, 10000f))
 
-polycolor.configure()
-
 discard poly(4, vec4(vec3(1f), 1f))
 
 window.onResize = proc() =
@@ -38,20 +35,6 @@ proc handleInput() =
 
 proc handleMousePress() =
     if window.buttonDown[MouseLeft]:
-        let matrix = block:
-            #let translation = translate(camera.position)
-            #let offset = translate(camera.front * 50f)
-
-            # let angle = arctan2(
-            #     -camera.front.z,
-            #     -camera.front.x
-            # ) + float32(PI) / 2f
-
-            # let rotation = rotateY(angle)
-
-            #offset * translation * rotation
-            mat4()
-
         let color = block:
             let time = epochTime()
 
@@ -61,7 +44,32 @@ proc handleMousePress() =
 
             vec4(red, green, blue, 1f)
 
-        discard poly(6, color, matrix)
+        let matrix = block:
+            let translation = translate(camera.position)
+            let offset = translate(camera.front * 50f)
+
+            let angle = arctan2(
+                -camera.front.z,
+                -camera.front.x
+            ) + float32(PI) / 2f
+
+            let rotation = rotateY(angle)
+
+            offset * translation * rotation
+
+        let time = int64(epochTime()) mod 4 + 3
+
+        case time
+        of 3:
+            discard poly(3, color, matrix)
+        of 4:
+            discard poly(4, color, matrix)
+        of 5:
+            discard poly(5, color, matrix)
+        of 6:
+            discard poly(6, color, matrix)
+        else:
+            discard
 
 window.onMouseMove = proc() =
     camera.rotate(window.mousePos)
