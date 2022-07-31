@@ -110,6 +110,8 @@ proc poly*(sides: static[int], color: Vec4, model: Mat4 = mat4()): WrappedShape[
     # the vertex data is reused for each shape,
     # so we only need to do it once
     if firstUsage:
+        # TODO use seqs and send pointers, so `sides`
+        # doesn't have to be static
         var corners: array[sides, Vec2]
 
         for side in 1 .. sides:
