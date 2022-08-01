@@ -1,19 +1,15 @@
-## A module providing buffers, sections, and construction procs
-## to easily allow creation of colored polygons.
+import poly/color
+import ../src/seed/video/backends/gl, ../src/seed/video/cameras
 
-import buffers, vmath, windy, opengl
-import ../src/seed/video/backends/gl
-import ../src/seed/video/[cameras]
+import vmath, windy
+import opengl
+
 import std/[times]
-
-from polycolor import poly
 
 let window = newWindow("Test", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
 
 window.makeContextCurrent()
 loadExtensions()
-
-polycolor.initialize()
 
 var
     movement = newMovement3D(0.5f, wasdSpaceShift)
@@ -21,11 +17,13 @@ var
 
     camera = newCamera3D(vec3(0f, 0f, 15f), movement, vec3(0f, 0f, -1f), vec3(0f, 1f, 0f), rotation)
 
-with(polycolor.program, false):
-    polycolor.view.update(mat4())
-    polycolor.project.update(perspective(45f, window.size.x / window.size.y, 0.1f, 10000f))
+initializeColorPolygons()
 
-discard poly(4, vec4(vec3(1f), 1f))
+with(color.program, false):
+    color.view.update(mat4())
+    color.project.update(perspective(45f, window.size.x / window.size.y, 0.1f, 10000f))
+
+discard colorPoly(4, vec4(vec3(1f), 1f))
 
 window.onResize = proc() =
     glViewport(0, 0, window.size.x, window.size.y)
@@ -35,7 +33,7 @@ proc handleInput() =
 
 proc handleMousePress() =
     if window.buttonDown[MouseLeft]:
-        let color = block:
+        let theColor = block:
             let time = epochTime()
 
             let red = sin(time)
@@ -57,19 +55,10 @@ proc handleMousePress() =
 
             offset * translation * rotation
 
-        let time = int64(epochTime()) mod 4 + 3
+        let time = int(int64(epochTime()) mod 8 + 3)
 
-        case time
-        of 3:
-            discard poly(3, color, matrix)
-        of 4:
-            discard poly(4, color, matrix)
-        of 5:
-            discard poly(5, color, matrix)
-        of 6:
-            discard poly(6, color, matrix)
-        else:
-            discard
+        discard colorPoly(time, theColor, matrix)
+        # discard colorPoly(time, theColor, matrix)
 
 window.onMouseMove = proc() =
     camera.rotate(window.mousePos)
@@ -78,10 +67,10 @@ proc renderFrame() =
     glClearColor(0.2f, 0.3f, 0.3f, 1f)
     glClear(GL_COLOR_BUFFER_BIT)
 
-    glUseProgram(polycolor.program.handle)
-    polycolor.view.update(camera.matrix)
+    glUseProgram(color.program.handle)
+    color.view.update(camera.matrix())
 
-    polycolor.drawPolygons()
+    drawColorPolygons()
 
 while not window.closeRequested:
     handleInput()
