@@ -91,35 +91,3 @@ proc use*(category: ShapeCategory) =
 
 proc draw*(category: ShapeCategory) =
     category.drawer.draw()
-
-## general poly functions
-
-proc newPolyVertices*(sides: int): seq[Vec2] =
-    let increment = (360f / float32(sides)).toRadians()
-
-    # add a center vertex for indices
-    result.add(vec2(0f, 0f))
-
-    for index in 1 .. sides:
-        let angle = increment * float32(index)
-
-        let x = cos(angle)
-        let y = sin(angle)
-
-        let vertex = vec2(x, y)
-        result.add(vertex)
-
-# generic number parameter to allow varying precision,
-# for the sake of memory efficiency
-proc newPolyIndices*[I](sides: I): seq[I] =
-    let center: I = 0
-    let one = I(1)
-
-    for index in one .. sides:
-        var nextIndex = index + one
-        if nextIndex > sides:
-            nextIndex = one
-
-        result.add(center)
-        result.add(index)
-        result.add(nextIndex)

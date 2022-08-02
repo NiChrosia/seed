@@ -1,4 +1,5 @@
-import ../buffers, ../attributes, ../macroutils, common
+import common, data
+import ../buffers, ../attributes, ../macroutils
 import ../../src/seed/video/backends/gl
 
 import vmath, shady
