@@ -1,7 +1,7 @@
 import poly/color
 import ../src/seed/video/backends/gl, ../src/seed/video/cameras
 
-import vmath, windy
+import vmath, windy, chroma
 import opengl
 
 import std/[times]
@@ -12,7 +12,7 @@ window.makeContextCurrent()
 loadExtensions()
 
 var
-    movement = newMovement3D(0.5f, wasdSpaceShift)
+    movement = newMovement3D(0.125f, wasdSpaceShift)
     rotation = newMouseRotation(1f)
 
     camera = newCamera3D(vec3(0f, 0f, 15f), movement, vec3(0f, 0f, -1f), vec3(0f, 1f, 0f), rotation)
@@ -34,11 +34,16 @@ proc handleInput() =
 proc handleMousePress() =
     if window.buttonDown[MouseLeft]:
         let theColor = block:
-            let time = epochTime()
+            let color = hsv(float32(sin(epochTime()) * 60f + 240f), 100f, 100f)
+            let rgb = color.asRgb()
 
-            let red = sin(time)
-            let green = sin(time + 1f)
-            let blue = sin(time + 2f)
+            proc normalize(value: uint8): float32 =
+                let asFloat = float32(value)
+                return asFloat / 255f
+
+            let red = normalize(rgb.r)
+            let green = normalize(rgb.g)
+            let blue = normalize(rgb.b)
 
             vec4(red, green, blue, 1f)
 
@@ -46,19 +51,13 @@ proc handleMousePress() =
             let translation = translate(camera.position)
             let offset = translate(camera.front * 50f)
 
-            let angle = arctan2(
-                -camera.front.z,
-                -camera.front.x
-            ) + float32(PI) / 2f
-
-            let rotation = rotateY(angle)
+            let rotTime = float32(epochTime() mod 6f) * 60f
+            let altTime = float32(sin(epochTime()))
+            let rotation = rotateZ(rotTime.toRadians() * altTime)
 
             offset * translation * rotation
 
-        let time = int(int64(epochTime()) mod 8 + 3)
-
-        discard colorPoly(time, theColor, matrix)
-        # discard colorPoly(time, theColor, matrix)
+        discard colorPoly(6, theColor, matrix)
 
 window.onMouseMove = proc() =
     camera.rotate(window.mousePos)
