@@ -13,8 +13,8 @@ proc newVertexArrayHandle*(): uint32 =
 proc connect*(array: VertexArray) =
     glBindVertexArray(array.handle)
 
-proc dataKindOf*[T](kind: typedesc[T]): GlEnum =
-    return case $kind
+proc dataKindOf*(kind: string): GlEnum =
+    return case kind
     # normal integers
     of "int8":
         cGlByte
@@ -34,6 +34,9 @@ proc dataKindOf*[T](kind: typedesc[T]): GlEnum =
         cGlFloat
     else:
         raise newException(ValueError, "Unrecognized data kind '" & $kind & "'!")
+
+proc dataKindOf*[T](kind: typedesc[T]): GlEnum =
+    return dataKindOf($kind)
 
 # usage
 
@@ -59,8 +62,8 @@ proc setVector*[T](
     
     let dataKind = dataKindOf(kind)
 
-    glVertexAttribPointer(index, height, dataKind, normalized, stride, cast[pointer](offset))
     glEnableVertexAttribArray(index)
+    glVertexAttribPointer(index, height, dataKind, normalized, stride, cast[pointer](offset))
 
 proc setScalar*[T](
     index: uint32, kind: typedesc[T],

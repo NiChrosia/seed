@@ -16,7 +16,7 @@ type
     Properties = Vec4
     Index = uint8
 
-proc size[T](kind: typedesc[T]): int32 =
+proc size*[T](kind: typedesc[T]): int32 =
     return int32(sizeof(kind))
 
 proc size[T](value: T): int32 =
@@ -76,16 +76,16 @@ vertexBuffer.connectTo(GlArrayBuffer)
 GlArrayBuffer.allocate(vertices.size(), usage)
 GlArrayBuffer.insert(0, vertices.size(), addr vertices)
 
-let posIndex = program.newAttributeIndex("pos")
-setVector(posIndex, float32, 0, 2, 0)
+let pos = program.newAttributeIndex("pos")
+setVector(pos, float32, 0, 2, 0)
 
 propertyBuffer.connectTo(GlArrayBuffer)
 GlArrayBuffer.allocate(properties.size(), usage)
 GlArrayBuffer.insert(0, properties.size(), addr properties)
 
-let colorIndex = program.newAttributeIndex("color")
-setVector(colorIndex, float32, 0, 4, 0)
-setDivisor(colorIndex, 1)
+let color = program.newAttributeIndex("color")
+setVector(color, float32, 0, 4, 0)
+setDivisor(color, 1)
 
 indexBuffer.connectTo(GlElementArrayBuffer)
 GlElementArrayBuffer.allocate(indices.size(), usage)
