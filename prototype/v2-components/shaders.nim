@@ -1,3 +1,3 @@
-import shaders/[common, programs, uniforms]
+import shaders/[common, programs, attributes, uniforms]
 
-export common, programs, uniforms
+export common, programs, attributes, uniforms

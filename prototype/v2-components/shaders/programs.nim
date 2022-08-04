@@ -35,9 +35,12 @@ let
 proc newProgram*(): ShaderProgram =
     result.handle = newProgramHandle()
 
-proc connect*(program: ShaderProgram, shaders: varargs[Shader]) =
+proc connectTo*(program: ShaderProgram, shaders: varargs[Shader]) =
     for shader in shaders:
         glAttachShader(program.handle, shader.handle)
+
+proc connect*(program: ShaderProgram) =
+    glUseProgram(program.handle)
 
 proc link*(program: ShaderProgram) =
     glLinkProgram(program.handle)

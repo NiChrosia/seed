@@ -14,28 +14,31 @@ proc connect*(array: VertexArray) =
     glBindVertexArray(array.handle)
 
 proc dataKindOf*[T](kind: typedesc[T]): GlEnum =
-    return case kind
+    return case $kind
     # normal integers
-    of int8:
-        GlByte
-    of int16:
-        GlShort
-    of int32:
-        GlInt
+    of "int8":
+        cGlByte
+    of "int16":
+        cGlShort
+    of "int32":
+        cGlInt
     # unsigned integers
-    of uint8:
-        GlUnsignedByte
-    of uint16:
-        GlUnsignedShort
-    of uint32:
+    of "uint8":
+        cGlUnsignedByte
+    of "uint16":
+        cGlUnsignedShort
+    of "uint32":
         GlUnsignedInt
     # floats
-    of float32:
-        GlFloat
+    of "float32":
+        cGlFloat
     else:
         raise newException(ValueError, "Unrecognized data kind '" & $kind & "'!")
 
 # usage
+
+proc newVertexArray*(): VertexArray =
+    result.handle = newVertexArrayHandle()
 
 proc setVector*[T](
     index: uint32, kind: typedesc[T],
@@ -57,6 +60,7 @@ proc setVector*[T](
     let dataKind = dataKindOf(kind)
 
     glVertexAttribPointer(index, height, dataKind, normalized, stride, cast[pointer](offset))
+    glEnableVertexAttribArray(index)
 
 proc setScalar*[T](
     index: uint32, kind: typedesc[T],
@@ -87,3 +91,6 @@ proc setMatrix*[T](
         let offset = baseOffset + (shift * memorySize)
 
         setVector(index, offset, height, kind, stride, normalized)
+
+proc setDivisor*(index: uint32, divisor: uint32) =
+    glVertexAttribDivisor(index, divisor)
