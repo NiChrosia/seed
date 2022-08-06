@@ -77,14 +77,14 @@ GlArrayBuffer.allocate(vertices.size(), usage)
 GlArrayBuffer.insert(0, vertices.size(), addr vertices)
 
 let pos = program.newAttributeIndex("pos")
-setVector(pos, float32, 0, 2, 0)
+setVector(pos, dataKindOf(float32), 0, 2, 0)
 
 propertyBuffer.connectTo(GlArrayBuffer)
 GlArrayBuffer.allocate(properties.size(), usage)
 GlArrayBuffer.insert(0, properties.size(), addr properties)
 
 let color = program.newAttributeIndex("color")
-setVector(color, float32, 0, 4, 0)
+setVector(color, dataKindOf(float32), 0, 4, 0)
 setDivisor(color, 1)
 
 indexBuffer.connectTo(GlElementArrayBuffer)

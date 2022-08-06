@@ -35,6 +35,27 @@ proc dataKindOf*(kind: string): GlEnum =
     else:
         raise newException(ValueError, "Unrecognized data kind '" & $kind & "'!")
 
+proc dataSizeOf*(kind: GlEnum): int32 =
+    let normalSize = case kind
+    of cGlByte:
+        sizeof(int8)
+    of cGlShort:
+        sizeof(int16)
+    of cGlInt:
+        sizeof(int32)
+    of cGlUnsignedByte:
+        sizeof(uint8)
+    of cGlUnsignedShort:
+        sizeof(uint16)
+    of GlUnsignedInt:
+        sizeof(uint32)
+    of cGlFloat:
+        sizeof(float32)
+    else:
+        raise newException(ValueError, "Unrecognized data kind!")
+
+    return int32(normalSize)
+
 proc dataKindOf*[T](kind: typedesc[T]): GlEnum =
     return dataKindOf($kind)
 
@@ -43,8 +64,8 @@ proc dataKindOf*[T](kind: typedesc[T]): GlEnum =
 proc newVertexArray*(): VertexArray =
     result.handle = newVertexArrayHandle()
 
-proc setVector*[T](
-    index: uint32, kind: typedesc[T],
+proc setVector*(
+    index: uint32, kind: GlEnum,
     offset, height: int32,
     stride: int32,
     normalized: bool = false
@@ -59,14 +80,12 @@ proc setVector*[T](
     ##   - stride: the memory stride between each item in buffer data.
     ##   - normalized: "whether fixed-point data values should be
     ##   normalized"
-    
-    let dataKind = dataKindOf(kind)
 
     glEnableVertexAttribArray(index)
-    glVertexAttribPointer(index, height, dataKind, normalized, stride, cast[pointer](offset))
+    glVertexAttribPointer(index, height, kind, normalized, stride, cast[pointer](offset))
 
-proc setScalar*[T](
-    index: uint32, kind: typedesc[T],
+proc setScalar*(
+    index: uint32, kind: GlEnum,
     offset: int32,
     stride: int32,
     normalized: bool = false
@@ -75,8 +94,8 @@ proc setScalar*[T](
 
     setVector(index, kind, offset, 1, stride, normalized)
 
-proc setMatrix*[T](
-    baseIndex: uint32, kind: typedesc[T],
+proc setMatrix*(
+    baseIndex: uint32, kind: GlEnum,
     baseOffset, width, height: int32,
     stride: int32,
     normalized: bool = false
@@ -87,13 +106,13 @@ proc setMatrix*[T](
     ## defined to be multiple attributes with offset
     ## memory values & indices.
     
-    let memorySize = int32(sizeof(kind))
+    let memorySize = dataSizeOf(kind)
 
     for shift in 0 ..< width:
-        let index = baseIndex + shift
+        let index = baseIndex + uint32(shift)
         let offset = baseOffset + (shift * memorySize)
 
-        setVector(index, offset, height, kind, stride, normalized)
+        setVector(index, kind, offset, height, stride, normalized)
 
 proc setDivisor*(index: uint32, divisor: uint32) =
     glVertexAttribDivisor(index, divisor)

@@ -2,34 +2,73 @@ import ../core/vertex_arrays, ../core/shaders
 
 import opengl
 
-import std/[macros]
+import std/[macros, genasts]
+
+# internal
+
+# - formatting
 
 type
     Vec*[H: static[int]; T] = array[H, T]
     Mat*[W, H: static[int]; T] = array[W * H, T]
 
+    AttributeType = enum
+        scalar, vector, matrix
+
 proc formatScalar*(
     program: NimNode, 
-    name: string, offset: int32, attributeType: GlEnum,
+    name: string, offset: int32, dataKind: GlEnum,
     stride: int32
 ): NimNode =
-    discard
+    let altType = uint32(dataKind)
+
+    result = genAst(program, name, offset, altType, stride) do:
+        let index = program.newAttributeIndex(name)
+
+        setScalar(index, GlEnum(altType), offset, stride)
 
 proc formatVector*(
     program: NimNode, 
-    name: string, height: int32, offset: int32, attributeType: GlEnum, 
+    name: string, height: int32, offset: int32, dataKind: GlEnum, 
     stride: int32, 
 ): NimNode =
-    discard
+    let altType = uint32(dataKind)
+
+    result = genAst(program, name, offset, height, altType, stride) do:
+        let index = program.newAttributeIndex(name)
+
+        setVector(index, GlEnum(altType), offset, height, stride)
 
 proc formatMatrix*(
     program: NimNode, 
-    name: string, width, height: int32, offset: int32, attributeType: GlEnum, 
+    name: string, width, height: int32, offset: int32, dataKind: GlEnum, 
     stride: int32, 
 ): NimNode =
-    discard
+    let altType = uint32(dataKind)
 
-macro formatVertexArray*(program: uint32, typeBody: untyped): untyped =
+    result = genAst(program, name, offset, width, height, altType, stride) do:
+        let index = program.newAttributeIndex(name)
+
+        setMatrix(index, GlEnum(altType), offset, width, height, stride)
+
+# types
+
+proc getAttributeType(typeNode: NimNode): AttributeType =
+    if typeNode.kind == nnkIdent or typeNode.kind == nnkSym:
+        return scalar
+    elif typeNode.kind == nnkBracketExpr:
+        let outer = $typeNode[0]
+
+        if outer == "Vec":
+            return vector
+        elif outer == "Mat":
+            return matrix
+    
+    raise newException(ValueError, "Unrecognized type '" & typeNode.treeRepr() & "'!")
+
+# usage
+
+macro formatVertexArray*(program: ShaderProgram, typeBody: untyped): untyped =
     ## Processes the given type declaration AST into 
     ## vertex attribute pointers according to the fields.
     
@@ -40,7 +79,7 @@ macro formatVertexArray*(program: uint32, typeBody: untyped): untyped =
     #[
         type
             Vertex = object
-                pos: array[2, float32]
+                pos: Vec[2, float32]
     ]#
     # produces
     #[
@@ -56,13 +95,11 @@ macro formatVertexArray*(program: uint32, typeBody: untyped): untyped =
                             IdentDefs
                                 Ident "pos"
                                 BracketExpr
-                                    Ident "array"
+                                    Ident "Vec"
                                     IntLit 2
                                     Ident "float32"
                                 Empty
     ]#
-
-    let typeSize: int32 = 0
 
     let section = typeBody[0]
     let definition = section[0]
@@ -70,35 +107,64 @@ macro formatVertexArray*(program: uint32, typeBody: untyped): untyped =
     let theType = definition[2]
     let fields = theType[2]
 
-    var offset: int32 = 0
+    # generate stride
+
+    var stride: int32
+
+    for field in fields:
+        let fieldType = field[1]
+        let attributeType = getAttributeType(fieldType)
+
+        var dataKind: GlEnum
+
+        case attributeType
+        of scalar:
+            dataKind = dataKindOf($fieldType)
+        of vector:
+            dataKind = dataKindOf($fieldType[2])
+        of matrix:
+            dataKind = dataKindOf($fieldType[3])
+
+        stride += dataSizeOf(dataKind)
+
+    # format attributes
+
+    var offset: int32
 
     for field in fields:
         # potential issue: this only supports one name
         let name = $field[0]
         let fieldType = field[1]
+        let attributeType = getAttributeType(fieldType)
 
-        if fieldType.kind == nnkIdent:
-            let attributeType = dataKindOf($fieldType)
+        var dataKind: GlEnum
 
-            result.add(formatScalar(program, name, offset, attributeType, typeSize))
-        elif fieldType.kind == nnkBracketExpr:
-            let typeName = $fieldType[0]
+        case attributeType
+        of scalar:
+            dataKind = dataKindOf($fieldType)
 
-            if typeName == "Vec":
-                let height = int32(fieldType[1].intVal())
+            result.add(formatScalar(program, name, offset, dataKind, stride))
+        of vector:
+            let height = fieldType[1].intVal().int32()
+            dataKind = dataKindOf($fieldType[2])
 
-                let attributeType = dataKindOf($fieldType[2])
+            result.add(formatVector(program, name, height, offset, dataKind, stride))
+        of matrix:
+            let width = fieldType[1].intVal().int32()
+            let height = fieldType[2].intVal().int32()
+            dataKind = dataKindOf($fieldType[3])
 
-                result.add(formatVector(program, name, height, offset, attributeType, typeSize))
-            elif typeName == "Mat":
-                let width = int32(fieldType[1].intVal())
-                let height = int32(fieldType[2].intVal())
+            result.add(formatMatrix(program, name, width, height, offset, dataKind, stride))
 
-                let attributeType = dataKindOf($fieldType[3])
+        offset += dataSizeOf(dataKind)
 
-                result.add(formatMatrix(program, name, width, height, offset, attributeType, typeSize))
+    echo result.repr()
 
-formatVertexArray(0):
+let program = newProgram()
+
+formatVertexArray(program):
     type
         Vertex = object
-            pos: array[2, float32]
+            pos: Vec[2, float32]
+            color: Vec[4, uint8]
+            model: Mat[4, 4, float32]
