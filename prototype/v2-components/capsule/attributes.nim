@@ -1,170 +1,277 @@
 import ../core/vertex_arrays, ../core/shaders
-
 import opengl
 
-import std/[macros, genasts]
-
-# internal
-
-# - formatting
+import std/[macros, genasts, sugar]
 
 type
     Vec*[H: static[int]; T] = array[H, T]
     Mat*[W, H: static[int]; T] = array[W * H, T]
 
-    AttributeType = enum
-        scalar, vector, matrix
+# initial ast transformation
 
-proc formatScalar*(
-    program: NimNode, 
-    name: string, offset: int32, dataKind: GlEnum,
-    stride: int32
-): NimNode =
-    let altType = uint32(dataKind)
+type
+    Id = object
+        name: string
 
-    result = genAst(program, name, offset, altType, stride) do:
-        let index = program.newAttributeIndex(name)
+        case instanced: bool
+        of true:
+            divisor: uint32
+        of false:
+            discard
 
-        setScalar(index, GlEnum(altType), offset, stride)
+    FormatFunction = (program: NimNode, id: Id, offset: int32, stride: int32) -> NimNode
 
-proc formatVector*(
-    program: NimNode, 
-    name: string, height: int32, offset: int32, dataKind: GlEnum, 
-    stride: int32, 
-): NimNode =
-    let altType = uint32(dataKind)
+    Format = object
+        function: FormatFunction
+        size: int32
 
-    result = genAst(program, name, offset, height, altType, stride) do:
-        let index = program.newAttributeIndex(name)
+    Attribute = object
+        id: Id
+        offset: int32
 
-        setVector(index, GlEnum(altType), offset, height, stride)
+        format: Format
 
-proc formatMatrix*(
-    program: NimNode, 
-    name: string, width, height: int32, offset: int32, dataKind: GlEnum, 
-    stride: int32, 
-): NimNode =
-    let altType = uint32(dataKind)
+# nodes
 
-    result = genAst(program, name, offset, width, height, altType, stride) do:
-        let index = program.newAttributeIndex(name)
+proc asInt[I](node: NimNode): I =
+    let asBiggestInt = node.intVal()
 
-        setMatrix(index, GlEnum(altType), offset, width, height, stride)
+    return I(asBiggestInt)
 
-# types
+# pragmas
 
-proc getAttributeType(typeNode: NimNode): AttributeType =
-    if typeNode.kind == nnkIdent or typeNode.kind == nnkSym:
-        return scalar
-    elif typeNode.kind == nnkBracketExpr:
-        let outer = $typeNode[0]
+proc getPragmaName(pragma: NimNode): string =
+    case pragma.kind
+    of nnkIdent:
+        return $pragma
+    of nnkCall:
+        return $pragma[0]
+    else:
+        return ""
 
-        if outer == "Vec":
-            return vector
-        elif outer == "Mat":
-            return matrix
-    
-    raise newException(ValueError, "Unrecognized type '" & typeNode.treeRepr() & "'!")
+proc getDivisor(pragma: NimNode): uint32 =
+    case pragma.kind
+    of nnkIdent:
+        return 1
+    of nnkCall:
+        return pragma[1].asInt[:uint32]()
+    else:
+        return 0
+
+# ids
+
+proc processIdentId(identId: NimNode): Id =
+    let name = $identId
+
+    return Id(name: name, instanced: false)
+
+proc processPragmaId(pragmaId: NimNode): Id =
+    let name = $pragmaId[0]
+    let pragmaNode = pragmaId[1]
+
+    for pragma in pragmaNode:
+        let pragmaName = pragma.getPragmaName()
+
+        if pragmaName != "instanced":
+            continue
+
+        let divisor = pragma.getDivisor()
+
+        return Id(name: name, instanced: true, divisor: divisor)
+
+proc processId(name: NimNode): Id =
+    case name.kind
+    of nnkIdent:
+        return processIdentId(name)
+    of nnkPragmaExpr:
+        return processPragmaId(name)
+    else:
+        error("Unexpected id type!", name)
+
+# formats
+
+proc processScalar(typeNode: NimNode): Format =
+    let name = $typeNode
+    let kind = dataKindOf(name)
+
+    let altKind = uint32(kind)
+
+    result.size = dataSizeOf(kind)
+    result.function = proc(program: NimNode, id: Id, offset: int32, stride: int32): NimNode =
+        return genAst(program, id, offset, altKind, stride) do:
+            let index = program.newAttributeIndex(id.name)
+
+            setScalar(index, GlEnum(altKind), offset, stride, false)
+
+            if id.instanced:
+                setDivisor(index, id.divisor)
+
+proc processVector(typeNode: NimNode): Format =
+    let height = typeNode[1].asInt[:int32]()
+
+    let name = $typeNode[2]
+    let kind = dataKindOf(name)
+
+    let altKind = uint32(kind)
+
+    result.size = height * dataSizeOf(kind)
+    result.function = proc(program: NimNode, id: Id, offset: int32, stride: int32): NimNode =
+        return genAst(program, id, offset, height, altKind, stride) do:
+            let index = program.newAttributeIndex(id.name)
+
+            setVector(index, GlEnum(altKind), offset, height, stride)
+
+            if id.instanced:
+                setDivisor(index, id.divisor)
+
+proc processMatrix(typeNode: NimNode): Format =
+    let width = typeNode[1].asInt[:int32]()
+    let height = typeNode[2].asInt[:int32]()
+
+    let name = $typeNode[3]
+    let kind = dataKindOf(name)
+
+    let altKind = uint32(kind)
+
+    result.size = width * height * dataSizeOf(kind)
+    result.function = proc(program: NimNode, id: Id, offset: int32, stride: int32): NimNode =
+        return genAst(program, id, offset, width, height, altKind, stride) do:
+            let index = program.newAttributeIndex(id.name)
+
+            setMatrix(index, GlEnum(altKind), offset, width,height, stride)
+
+            if id.instanced:
+                setDivisor(index, id.divisor)
+
+proc processFormat(typeNode: NimNode): Format =
+    case typeNode.kind
+    of nnkIdent:
+        return processScalar(typeNode)
+    of nnkBracketExpr:
+        let name = $typeNode[0]
+
+        case name
+        of "Vec":
+            return processVector(typeNode)
+        of "Mat":
+            return processMatrix(typeNode)
+        else:
+            error("Unrecognized bracket type!", typeNode)
+    else:
+        error("Unrecognized node type!", typeNode)
 
 # usage
 
-macro formatVertexArray*(program: ShaderProgram, typeBody: untyped): untyped =
-    ## Processes the given type declaration AST into 
-    ## vertex attribute pointers according to the fields.
-    
+#[
+relevant trees:
+
+type
+    Vertex = object
+        pos: Vec[2, float32]
+
+    Props = object
+        color: Vec[4, float32]
+        model: Mat[4, 4, float32]
+
+    Index = uint8
+->
+StmtList
+    TypeSection
+        TypeDef
+            Ident "Vertex"
+            Empty
+            ObjectTy
+                Empty
+                Empty
+                RecList
+                    IdentDefs
+                        Ident "pos"
+                        BracketExpr
+                            Ident "Vec"
+                            IntLit 2
+                            Ident "float32"
+                        Empty
+        TypeDef
+            Ident "Props"
+            Empty
+            ObjectTy
+                Empty
+                Empty
+                RecList
+                    IdentDefs
+                        Ident "color"
+                        BracketExpr
+                            Ident "Vec"
+                            IntLit 4
+                            Ident "float32"
+                        Empty
+                    IdentDefs
+                        Ident "model"
+                        BracketExpr
+                            Ident "Mat"
+                            IntLit 4
+                            IntLit 4
+                            Ident "float32"
+                        Empty
+        TypeDef
+            Ident "Index"
+            Empty
+            Ident "uint8"
+]#
+
+#[
+let x {.a, b(1).} = 1
+->
+StmtList
+    LetSection
+        IdentDefs
+            PragmaExpr
+                Ident "x"
+                Pragma
+                    Ident "a"
+                    Call
+                        Ident "b"
+                        IntLit 1
+            Empty
+            IntLit 1
+]#
+
+macro formatAttributesWith*(program: ShaderProgram, typeBody: untyped): untyped =
     result = newStmtList()
 
-    # typeBody
-    # using code
-    #[
-        type
-            Vertex = object
-                pos: Vec[2, float32]
-    ]#
-    # produces
-    #[
-        StmtList
-            TypeSection
-                TypeDef
-                    Ident "Vertex"
-                    Empty
-                    ObjectTy
-                        Empty
-                        Empty
-                        RecList
-                            IdentDefs
-                                Ident "pos"
-                                BracketExpr
-                                    Ident "Vec"
-                                    IntLit 2
-                                    Ident "float32"
-                                Empty
-    ]#
-
     let section = typeBody[0]
-    let definition = section[0]
 
-    let theType = definition[2]
-    let fields = theType[2]
+    for definition in section:
+        let definitionId = processId(definition[0])
 
-    # generate stride
+        let declaration = definition[2]
+        let fields = declaration[2]
 
-    var stride: int32
+        var attributes: seq[Attribute]
+        var offset: int32 = 0
 
-    for field in fields:
-        let fieldType = field[1]
-        let attributeType = getAttributeType(fieldType)
+        for field in fields:
+            var id = processId(field[0])
+            let format = processFormat(field[1])
+            
+            # if the type id is instanced and this field isn't
+            # (meaning you can override the type level instanced)
+            if definitionId.instanced and not id.instanced:
+                # set the instanced values to the type's
+                id.instanced = definitionId.instanced
+                id.divisor = definitionId.divisor
 
-        var dataKind: GlEnum
+            let attribute = Attribute(id: id, offset: offset, format: format)
+            attributes.add(attribute)
 
-        case attributeType
-        of scalar:
-            dataKind = dataKindOf($fieldType)
-        of vector:
-            dataKind = dataKindOf($fieldType[2])
-        of matrix:
-            dataKind = dataKindOf($fieldType[3])
+            offset += format.size
 
-        stride += dataSizeOf(dataKind)
+        let stride = offset
 
-    # format attributes
+        for attribute in attributes:
+            let id = attribute.id
+            let offset = attribute.offset
+            let function = attribute.format.function
 
-    var offset: int32
-
-    for field in fields:
-        # potential issue: this only supports one name
-        let name = $field[0]
-        let fieldType = field[1]
-        let attributeType = getAttributeType(fieldType)
-
-        var dataKind: GlEnum
-
-        case attributeType
-        of scalar:
-            dataKind = dataKindOf($fieldType)
-
-            result.add(formatScalar(program, name, offset, dataKind, stride))
-        of vector:
-            let height = fieldType[1].intVal().int32()
-            dataKind = dataKindOf($fieldType[2])
-
-            result.add(formatVector(program, name, height, offset, dataKind, stride))
-        of matrix:
-            let width = fieldType[1].intVal().int32()
-            let height = fieldType[2].intVal().int32()
-            dataKind = dataKindOf($fieldType[3])
-
-            result.add(formatMatrix(program, name, width, height, offset, dataKind, stride))
-
-        offset += dataSizeOf(dataKind)
-
-    echo result.repr()
-
-let program = newProgram()
-
-formatVertexArray(program):
-    type
-        Vertex = object
-            pos: Vec[2, float32]
-            color: Vec[4, uint8]
-            model: Mat[4, 4, float32]
+            let formatted = function(program, id, offset, stride)
+            result.add(formatted)
