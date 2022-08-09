@@ -74,8 +74,7 @@ let usage = GlDynamicDraw
 vertexArray.connect()
 
 vertexBuffer.connectTo(GlArrayBuffer)
-GlArrayBuffer.allocate(vertices.size(), usage)
-GlArrayBuffer.insert(0, vertices.size(), addr vertices)
+GlArrayBuffer.allocateWith(vertices, usage)
 
 program.formatAttributesWith():
     type
@@ -83,8 +82,7 @@ program.formatAttributesWith():
             pos: Vec[2, float32]
 
 propertyBuffer.connectTo(GlArrayBuffer)
-GlArrayBuffer.allocate(properties.size(), usage)
-GlArrayBuffer.insert(0, properties.size(), addr properties)
+GlArrayBuffer.allocateWith(properties, usage)
 
 program.formatAttributesWith():
     type

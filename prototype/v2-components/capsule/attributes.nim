@@ -7,8 +7,6 @@ type
     Vec*[H: static[int]; T] = array[H, T]
     Mat*[W, H: static[int]; T] = array[W * H, T]
 
-# initial ast transformation
-
 type
     Id = object
         name: string
