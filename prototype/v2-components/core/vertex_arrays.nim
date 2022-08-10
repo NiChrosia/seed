@@ -81,6 +81,8 @@ proc setVector*(
     ##   - normalized: "whether fixed-point data values should be
     ##   normalized"
 
+    echo "setVector(index: ", index, ", offset: ", offset, ", height: ", height, ", stride: ", stride, ", normalized: ", normalized, ")"
+
     glEnableVertexAttribArray(index)
     glVertexAttribPointer(index, height, kind, normalized, stride, cast[pointer](offset))
 
@@ -110,7 +112,7 @@ proc setMatrix*(
 
     for shift in 0 ..< width:
         let index = baseIndex + uint32(shift)
-        let offset = baseOffset + (shift * memorySize)
+        let offset = baseOffset + (shift * height * memorySize)
 
         setVector(index, kind, offset, height, stride, normalized)
 

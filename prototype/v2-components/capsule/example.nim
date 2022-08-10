@@ -14,31 +14,45 @@ loadExtensions()
 
 type
     Vertex = Vec2
-    Properties = Vec4
+
+    Properties = object
+        color: Vec4
+        model: Mat4
+
     Index = uint8
 
-proc size*[T](kind: typedesc[T]): int32 =
-    return int32(sizeof(kind))
+var vertices = [
+    vec2(-1f, -1f), vec2(-1f, 1f), vec2(1f, -1f), vec2(1f, 1f)
+]
 
-proc size[T](value: T): int32 =
-    return int32(sizeof(value))
+var properties = [
+    Properties(model: translate(vec3(-1f, -1f, 0f)).transpose())
+]
 
-var vertices = [vec2(-1f, -1f), vec2(-1f, 1f), vec2(1f, -1f)]
-var properties = vec4(0.3f, 0.2f, 0.2f, 1f)
-var indices = [uint8(0), 1, 2]
+var indices = [
+    Index(0), 1, 2,
+    1, 2, 3
+]
 
 # shaders
 
 let vertexSource = """#version 330
 
 in vec2 pos;
-in vec4 color;
+in mat4 model;
 
 out vec4 vColor;
 
 void main() {
-    gl_Position = vec4(vec3(pos, 0.0), 1.0);
-    vColor = color;
+    mat4 fakeModel = mat4(
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        -1.0, -1.0, 0.0, 1.0
+    );
+
+    gl_Position = model * vec4(vec3(pos, 0.0), 1.0) + model[0] - model[0];
+    vColor = vec4(pos.x, 0.0, pos.y, 1.0);
 }"""
 
 let fragmentSource = """#version 330
@@ -71,31 +85,36 @@ let indexBuffer = newBuffer()
 
 let usage = GlDynamicDraw
 
+# configuration
+
 vertexArray.connect()
 
 vertexBuffer.connectTo(GlArrayBuffer)
-GlArrayBuffer.allocateWith(vertices, usage)
-
 program.formatAttributesWith():
     type
         Vertex = object
             pos: Vec[2, float32]
 
 propertyBuffer.connectTo(GlArrayBuffer)
-GlArrayBuffer.allocateWith(properties, usage)
-
 program.formatAttributesWith():
     type
         Properties {.instanced.} = object
-            color: Vec[4, float32]
-
-# let color = program.newAttributeIndex("color")
-# setVector(color, dataKindOf(float32), 0, 4, 0)
-# setDivisor(color, 1)
+            model: Mat[4, 4, float32]
 
 indexBuffer.connectTo(GlElementArrayBuffer)
-GlElementArrayBuffer.allocate(indices.size(), usage)
-GlElementArrayBuffer.insert(0, indices.size(), addr indices)
+
+# data
+
+vertexBuffer.connectTo(GlArrayBuffer)
+GlArrayBuffer.allocateWith(vertices, usage)
+
+propertyBuffer.connectTo(GlArrayBuffer)
+GlArrayBuffer.allocateWith(properties, usage)
+
+indexBuffer.connectTo(GlElementArrayBuffer)
+GlElementArrayBuffer.allocateWith(indices, usage)
+
+# draw
 
 while not window.closeRequested:
     glClearColor(0f, 0f, 0f, 1f)
@@ -104,7 +123,7 @@ while not window.closeRequested:
     program.connect()
     vertexArray.connect()
 
-    glDrawElementsInstanced(GlTriangles, 3, GlUnsignedByte, nil, 1)
+    glDrawElementsInstanced(GlTriangles, 6, GlUnsignedByte, nil, 1)
 
     window.swapBuffers()
     pollEvents()
