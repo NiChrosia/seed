@@ -1,12 +1,12 @@
 import poly/color
-import ../src/seed/video/backends/gl, ../src/seed/video/cameras
+import ../../src/seed/video/backends/gl, ../../src/seed/video/cameras
 
 import vmath, windy, chroma
 import opengl
 
 import std/[times]
 
-let window = newWindow("Test", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
+let window = newWindow("Test", ivec2(800, 600), openglVersion = Opengl3Dot3)
 
 window.makeContextCurrent()
 loadExtensions()

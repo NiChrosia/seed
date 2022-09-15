@@ -1,5 +1,5 @@
 import ../attributes, ../buffers, ../macroutils
-import ../../src/seed/video/backends/gl/shaders
+import ../../../src/seed/video/backends/gl/shaders
 
 import vmath
 

@@ -1,4 +1,4 @@
 import formats
-import qoi as qoiFormat
+# import qoi as qoiFormat
 
-let qoi* = newFormat(readQoi, writeQoi)
+# let qoi* = newFormat(readQoi, writeQoi)

@@ -5,7 +5,7 @@ import opengl
 
 # window
 
-let window = newWindow("Example", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
+let window = newWindow("Example", ivec2(800, 600), openglVersion = OpenGl3Dot3)
 
 window.makeContextCurrent()
 loadExtensions()
