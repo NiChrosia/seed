@@ -6,7 +6,10 @@ import opengl
 
 import std/[times]
 
-let window = newWindow("Test", ivec2(800, 600), openglVersion = Opengl3Dot3)
+when defined(windows):
+  let window = newWindow("Test", ivec2(800, 600), openglVersion = Opengl3Dot3)
+else:
+  let window = newWindow("Test", ivec2(800, 600), openglMajorVersion = 3, openglMinorVersion = 3)
 
 window.makeContextCurrent()
 loadExtensions()
