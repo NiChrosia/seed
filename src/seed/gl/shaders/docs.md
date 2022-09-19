@@ -92,8 +92,8 @@ set(l, [
 ```
 
 Parameters:
-- The value `l` is the uniform location, used for setting values. It can be obtained using `@n` or `ShaderProgram.locate(n)`.
-- The value `n` is the name of the uniform, used to obtain the location. It is used in `@n` and `ShaderProgram.locate(n)`.
+- The value `l` is the uniform location, used for setting values.
+- The value `n` is the name of the uniform, used to obtain the location.
 
 Functions:
 - `@n` obtains a uniform location using name `n` and the currently bound shader program.
