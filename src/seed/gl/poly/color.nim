@@ -1,6 +1,6 @@
 import common, data
 import ../buffers, ../attributes, ../macroutils
-import ../../../src/seed/video/backends/gl
+import ../shaders/[types, programs, uniforms]
 
 import vmath, shady
 import opengl
@@ -55,14 +55,14 @@ var
     class: ShapeClass
 
     program*: ShaderProgram
-    view*, project*: ShaderUniform[Mat4]
+    view*, project*: UniformLocation
 
 proc initializeColorPolygons*() =
     class = newShapeClass(toGLSL(processVertex), toGLSL(processFragment))
     program = class.program
 
-    view = program.newUniform[:Mat4]("view", updateMatrix)
-    project = program.newUniform[:Mat4]("project", updateMatrix)
+    view = program.locate("view")
+    project = program.locate("project")
 
 # usage
 
@@ -89,7 +89,7 @@ proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()): ShapeHandle =
     category.drawer.count += 1
 
 proc drawColorPolygons*() =
-    glUseProgram(program.handle)
+    program.use()
 
     for category in categories.values:
         category.use()

@@ -1,5 +1,5 @@
 import ../attributes, ../buffers, ../macroutils
-import ../../../src/seed/video/backends/gl/shaders
+import ../shaders/[types, shaders, programs]
 
 import vmath
 
@@ -52,14 +52,11 @@ proc draw*(drawer: InstancedDrawer) =
 ## shape classes
 
 proc newShapeClass*(vertexSource, fragmentSource: string): ShapeClass =
-    let vertexShader = newShader(GlVertexShader, vertexSource)
-    let fragmentShader = newShader(GlFragmentShader, fragmentSource)
+    let vertexShader = initShader(sVertex, vertexSource, true)
+    let fragmentShader = initShader(sFragment, fragmentSource, true)
 
     result = new(ShapeClass)
-
-    result.program = newProgram()
-    result.program.shaders = (vertexShader, fragmentShader)
-    result.program.link()
+    result.program = initProgram([vertexShader, fragmentShader], true)
 
 ## shape categories
 
@@ -79,10 +76,10 @@ proc newShapeCategory*[V, P, I, D](class: ShapeClass, drawer: D): ShapeCategory[
     glBindVertexArray(result.configuration)
 
     result.vertices.bindTo(GlArrayBuffer)
-    declareAttributes(class.program.handle, V)
+    declareAttributes(*class.program, V)
 
     result.properties.bindTo(GlArrayBuffer)
-    declareAttributes(class.program.handle, P, true)
+    declareAttributes(*class.program, P, true)
 
     result.indices.bindTo(GlElementArrayBuffer)
 

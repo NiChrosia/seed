@@ -1,5 +1,5 @@
-import poly/color
-import ../../src/seed/video/backends/gl, ../../src/seed/video/cameras
+import ../src/seed/gl/poly/color
+import ../src/seed/gl/shaders/[programs, uniforms], ../src/seed/gl/cameras
 
 import vmath, windy, chroma
 import opengl
@@ -22,9 +22,10 @@ var
 
 initializeColorPolygons()
 
-with(color.program, false):
-    color.view.update(mat4())
-    color.project.update(perspective(45f, window.size.x / window.size.y, 0.1f, 10000f))
+color.program.use()
+
+color.view.set(cast[array[16, float32]](mat4()), false)
+color.project.set(cast[array[16, float32]](perspective(45f, window.size.x / window.size.y, 0.1f, 10000f)), false)
 
 discard colorPoly(4, vec4(vec3(1f), 1f))
 
@@ -69,8 +70,8 @@ proc renderFrame() =
     glClearColor(0.2f, 0.3f, 0.3f, 1f)
     glClear(GL_COLOR_BUFFER_BIT)
 
-    glUseProgram(color.program.handle)
-    color.view.update(camera.matrix())
+    color.program.use()
+    color.view.set(cast[array[16, float32]](camera.matrix()), false)
 
     drawColorPolygons()
 
