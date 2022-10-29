@@ -1,10 +1,13 @@
 import ../src/seed/gl/poly/color
 import ../src/seed/gl/shaders/[programs, uniforms], ../src/seed/gl/cameras
 
-import vmath, windy, chroma
+import vmath, windy #, chroma
 import opengl
 
-import std/[times]
+# import std/[times]
+import std/random
+
+randomize()
 
 when defined(windows):
   let window = newWindow("Test", ivec2(800, 600), openglVersion = Opengl3Dot3)
@@ -18,7 +21,12 @@ var
     movement = newMovement3D(0.125f, wasdSpaceShift)
     rotation = newMouseRotation(1f)
 
-    camera = newCamera3D(vec3(0f, 0f, 15f), movement, vec3(0f, 0f, -1f), vec3(0f, 1f, 0f), rotation)
+    camera = newCamera3D(
+        movement, rotation,
+        initialPosition = vec3(0f, 0f, 15f), 
+        initialFront = vec3(0f, 0f, -1f),
+        initialTop = vec3(0f, 1f, 0f)
+    )
 
 initializeColorPolygons()
 
@@ -32,41 +40,53 @@ discard colorPoly(4, vec4(vec3(1f), 1f))
 window.onResize = proc() =
     glViewport(0, 0, window.size.x, window.size.y)
 
+# A, T, C, G
+const bases = [
+    vec3(1f, 0f, 0f),
+    vec3(1f, 0f, 1f),
+    vec3(0f, 1f, 0f),
+    vec3(0f, 0.5f, 1f),
+]
+
+proc onClick() =
+    block:
+        let matrix = translate(camera.position)
+            .`*` translate(camera.front * 50f)
+            .`*` rotate(-arctan2(camera.front.x, camera.front.z), vec3(0f, 1f, 0f))
+            .`*` rotate(TAU.float32 / 8f, vec3(0f, 0f, 1f))
+            .`*` scale(vec3(2f, 2f, 1f))
+
+        discard colorPoly(4, vec4(0f, 0.5f, 1f, 1f), matrix)
+
+    block:
+        let matrix = translate(camera.position)
+            .`*` translate(camera.front * 50f)
+            .`*` translate(camera.top * 2f)
+            .`*` rotate(-arctan2(camera.front.x, camera.front.z), vec3(0f, 1f, 0f))
+            .`*` rotate(TAU.float32 / 8f, vec3(0f, 0f, 1f))
+
+        discard colorPoly(4, vec4(1f, 0f, 1f, 1f), matrix)
+
+    block:
+        let matrix = translate(camera.position)
+            .`*` translate(camera.front * 50f)
+            .`*` translate(camera.right * 2f)
+            .`*` rotate(-arctan2(camera.front.x, camera.front.z), vec3(0f, 1f, 0f))
+            .`*` scale(vec3(2f, 1f, 1f))
+            .`*` rotate(TAU.float32 / 8f, vec3(0f, 0f, 1f))
+
+        discard colorPoly(4, vec4(bases[rand(0..3)], 1f), matrix)
+
 proc handleInput() =
     camera.move(window.buttonDown)
 
-proc handleMousePress() =
     if window.buttonDown[MouseLeft]:
-        let theColor = block:
-            let color = hsv(float32(sin(epochTime()) * 60f + 240f), 100f, 100f)
-            let rgb = color.asRgb()
-
-            proc normalize(value: uint8): float32 =
-                let asFloat = float32(value)
-                return asFloat / 255f
-
-            let red = normalize(rgb.r)
-            let green = normalize(rgb.g)
-            let blue = normalize(rgb.b)
-
-            vec4(red, green, blue, 1f)
-
-        let matrix = block:
-            let translation = translate(camera.position)
-            let offset = translate(camera.front * 50f)
-
-            let rotTime = float32(epochTime() mod 6f) * 60f
-            let altTime = float32(sin(epochTime()))
-            let rotation = rotateZ(rotTime.toRadians() * altTime)
-
-            offset * translation * rotation
-
-        discard colorPoly(6, theColor, matrix)
+        onClick()
 
 window.onMouseMove = proc() =
     camera.rotate(window.mousePos)
 
-proc renderFrame() =
+window.onFrame = proc() =
     glClearColor(0.2f, 0.3f, 0.3f, 1f)
     glClear(GL_COLOR_BUFFER_BIT)
 
@@ -77,8 +97,6 @@ proc renderFrame() =
 
 while not window.closeRequested:
     handleInput()
-    renderFrame()
-    handleMousePress()
 
     window.swapBuffers()
     pollEvents()

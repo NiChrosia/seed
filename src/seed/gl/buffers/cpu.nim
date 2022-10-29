@@ -71,9 +71,9 @@ proc newSeqBatch*[T](theSeq: seq[T]): Batch =
 
 proc newBatch*[T](item: T): Batch =
     when T is seq:
-        raise newException(ValueError, "Passing a sequence to the implicit batch initializer is not allowed, as sizeof returns an incorrect value. Try using newSeqBatch instead.")
+        return newSeqBatch(item)
+    else:
+        let width = int32(sizeof(T))
 
-    let width = int32(sizeof(T))
-
-    result = newBatch(width)
-    discard result.add(unsafeAddr item, width)
+        result = newBatch(width)
+        discard result.add(unsafeAddr item, width)

@@ -188,11 +188,11 @@ proc newCameraFlat3D*(initialPosition: Vec3, movement: Movement[CameraFlat3D, Ve
         movement = movement
 
 proc newCamera3D*(
-    initialPosition: Vec3,
     movement: Movement[Camera3D, Vec3],
+    rotation: Rotation[IVec2, Vec3],
 
+    initialPosition: Vec3,
     initialFront, initialTop: Vec3,
-    rotation: Rotation[IVec2, Vec3]
 ): Camera3D =
     with(result):
         position = initialPosition

@@ -1,5 +1,5 @@
 import ../attributes, ../buffers, ../macroutils
-import ../shaders/[types, shaders, programs]
+import ../shaders/[types]
 
 import vmath
 
@@ -21,9 +21,6 @@ type
         count*: int32
 
     # shapes
-
-    ShapeClass* = ref object
-        program*: ShaderProgram
 
     ShapeCategory*[V, P, I, D] = ref object
         vertices*, properties*, indices*: Buffer
@@ -51,16 +48,16 @@ proc draw*(drawer: InstancedDrawer) =
 
 ## shape classes
 
-proc newShapeClass*(vertexSource, fragmentSource: string): ShapeClass =
-    let vertexShader = initShader(sVertex, vertexSource, true)
-    let fragmentShader = initShader(sFragment, fragmentSource, true)
+# proc newShapeClass*(vertexSource, fragmentSource: string): ShapeClass =
+#     let vertexShader = initShader(sVertex, vertexSource, true)
+#     let fragmentShader = initShader(sFragment, fragmentSource, true)
 
-    result = new(ShapeClass)
-    result.program = initProgram([vertexShader, fragmentShader], true)
+#     result = new(ShapeClass)
+#     result.program = initProgram([vertexShader, fragmentShader], true)
 
 ## shape categories
 
-proc newShapeCategory*[V, P, I, D](class: ShapeClass, drawer: D): ShapeCategory[V, P, I, D] =
+proc newShapeCategory*[V, P, I, D](program: ShaderProgram, drawer: D): ShapeCategory[V, P, I, D] =
     result = new(ShapeCategory[V, P, I, D])
 
     result.drawer = drawer
@@ -76,10 +73,10 @@ proc newShapeCategory*[V, P, I, D](class: ShapeClass, drawer: D): ShapeCategory[
     glBindVertexArray(result.configuration)
 
     result.vertices.bindTo(GlArrayBuffer)
-    declareAttributes(*class.program, V)
+    declareAttributes(*program, V)
 
     result.properties.bindTo(GlArrayBuffer)
-    declareAttributes(*class.program, P, true)
+    declareAttributes(*program, P, true)
 
     result.indices.bindTo(GlElementArrayBuffer)
 

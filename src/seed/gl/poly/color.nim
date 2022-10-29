@@ -1,11 +1,22 @@
 import common, data
 import ../buffers, ../attributes, ../macroutils
-import ../shaders/[types, programs, uniforms]
+import ../shaders/[types, programs, uniforms, shaders]
 
 import vmath, shady
 import opengl
 
 import std/[tables]
+
+#[
+
+this system is bad.
+it includes a number of things it shouldn't, like the shaders,
+and overall, it's an overabstraction
+
+instead, there should simply be something to represent a draw call,
+and the correlated buffers.
+
+]#
 
 # properties
 
@@ -33,8 +44,8 @@ proc newProperties(color: Vec4, model: Mat4): Properties =
 proc newDrawer(sides: int): InstancedDrawer =
     return newInstancedDrawer(GlTriangles, GlUnsignedByte, int32(3 * sides))
 
-proc newCategory(class: ShapeClass, drawer: InstancedDrawer): Category =
-    return newShapeCategory[VertexRepr, PropertiesRepr, uint8, InstancedDrawer](class, drawer)
+proc newCategory(program: ShaderProgram, drawer: InstancedDrawer): Category =
+    return newShapeCategory[VertexRepr, PropertiesRepr, uint8, InstancedDrawer](program, drawer)
 
 # shaders
 
@@ -52,14 +63,14 @@ proc processFragment(FragColor: var Vec4, vColor: Vec4) =
 # class
 
 var
-    class: ShapeClass
-
     program*: ShaderProgram
     view*, project*: UniformLocation
 
 proc initializeColorPolygons*() =
-    class = newShapeClass(toGLSL(processVertex), toGLSL(processFragment))
-    program = class.program
+    let vertexShader = initShader(sVertex, toGLSL(processVertex), true)
+    let fragmentShader = initShader(sFragment, toGLSL(processFragment), true)
+
+    program = initProgram([vertexShader, fragmentShader], true)
 
     view = program.locate("view")
     project = program.locate("project")
@@ -73,10 +84,10 @@ proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()): ShapeHandle =
         categories[sides]
     except KeyError:
         let drawer = newDrawer(sides)
-        categories[sides] = newCategory(class, drawer)
+        categories[sides] = newCategory(program, drawer)
 
         let vertices = newPolyVertices(sides)
-        discard categories[sides].vertices.add(newSeqBatch(vertices))
+        discard categories[sides].vertices.add(newBatch(vertices))
 
         categories[sides]
 
@@ -84,7 +95,7 @@ proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()): ShapeHandle =
     let indices = newPolyIndices(uint8(sides))
 
     result.offset = category.properties.add(newBatch(properties))
-    discard category.indices.add(newSeqBatch(indices))
+    discard category.indices.add(newBatch(indices))
 
     category.drawer.count += 1
 
