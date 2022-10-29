@@ -30,8 +30,6 @@ type
         color: Vector[4, float32]
         model: SquareMatrix[4, float32]
 
-    Category = ShapeCategory[VertexRepr, PropertiesRepr]
-
     # properties
 
     Properties = object
@@ -40,9 +38,6 @@ type
 
 proc newProperties(color: Vec4, model: Mat4): Properties =
     result.assign(color, model)
-
-proc newCategory(program: ShaderProgram, perInstance: int32): Category =
-    return newShapeCategory[VertexRepr, PropertiesRepr](program, perInstance)
 
 # shaders
 
@@ -74,17 +69,13 @@ proc initializeColorPolygons*() =
 
 # usage
 
-var categories: Table[int, Category]
+var categories: Table[int, ShapeCategory[Vec2, PropertiesRepr]]
 
 proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()) =
     var category = try:
         categories[sides]
     except KeyError:
-        categories[sides] = newCategory(program, int32 newPolyIndices(sides).len)
-
-        let vertices = newPolyVertices(sides)
-        discard categories[sides].vertices.add(newBatch(vertices))
-
+        categories[sides] = newShapeCategory[VertexRepr, PropertiesRepr, Vec2](program, newPolyVertices(sides), newPolyIndices(uint32 sides))
         categories[sides]
 
     let properties = newProperties(color, model)

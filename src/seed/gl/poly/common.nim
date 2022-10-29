@@ -1,5 +1,6 @@
 import ../attributes, ../buffers
 import ../shaders/[types]
+import data
 
 import vmath
 
@@ -14,8 +15,9 @@ type
 
 ## shape categories
 
-proc newShapeCategory*[V, P](program: ShaderProgram, perInstance: int32): ShapeCategory[V, P] =
-    result = new(ShapeCategory[V, P])
+proc newShapeCategory*[V, P, RealV](program: ShaderProgram, vertices: seq[RealV], indices: seq[uint32]): ShapeCategory[RealV, P] =
+    # fields
+    result = new(ShapeCategory[RealV, P])
 
     result.vertices = newBuffer(GlDynamicDraw)
     result.properties = newBuffer(GlDynamicDraw)
@@ -23,10 +25,9 @@ proc newShapeCategory*[V, P](program: ShaderProgram, perInstance: int32): ShapeC
 
     glGenVertexArrays(1, addr result.configuration)
 
-    result.perInstance = perInstance
+    result.perInstance = int32(indices.len)
 
-    # configuration
-
+    # state
     glBindVertexArray(result.configuration)
 
     result.vertices.bindTo(GlArrayBuffer)
@@ -36,6 +37,10 @@ proc newShapeCategory*[V, P](program: ShaderProgram, perInstance: int32): ShapeC
     declareAttributes(*program, P, true)
 
     result.indices.bindTo(GlElementArrayBuffer)
+
+    # data
+    discard result.vertices.add(newBatch(vertices))
+    discard result.indices.add(newBatch(indices))
 
 proc draw*(category: ShapeCategory) =
     glBindVertexArray(category.configuration)
