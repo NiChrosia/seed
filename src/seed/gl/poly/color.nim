@@ -69,13 +69,13 @@ proc initializeColorPolygons*() =
 
 # usage
 
-var categories: Table[int, ShapeCategory[Vec2, Properties]]
+var categories: Table[int, InstanceCategory[Vec2, Properties]]
 
 proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()) =
     var category = try:
         categories[sides]
     except KeyError:
-        categories[sides] = newShapeCategory[VertexRepr, PropertiesRepr, Vec2, Properties](program, newPolyVertices(sides), newPolyIndices(uint32 sides))
+        categories[sides] = initInstCategory[VertexRepr, PropertiesRepr, Vec2, Properties](program, newPolyVertices(sides), newPolyIndices(uint32 sides))
         categories[sides]
 
     category.add(newProperties(color, model))

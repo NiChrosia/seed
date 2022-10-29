@@ -1,48 +1,46 @@
 import ../attributes, ../buffers
 import ../shaders/[types]
 
-import vmath
-
 import opengl
 
 type
-    ShapeCategory*[V, P] = ref object
-        vertices*, properties*, indices*: Buffer
-        configuration*: uint32
+    InstanceCategory*[V, P] = ref object
+        vertices, properties, indices: Buffer
+        layout: uint32
 
-        perInstance, instances*: int32
+        perInstance, instances: int32
 
-proc newShapeCategory*[V, P, RealV, RealP](program: ShaderProgram, vertices: seq[RealV], indices: seq[uint32]): ShapeCategory[RealV, RealP] =
+proc initInstCategory*[V, P, RealV, RealP](program: ShaderProgram, vertices: seq[RealV], indices: seq[uint32]): InstanceCategory[RealV, RealP] =
     # fields
-    result = new(ShapeCategory[RealV, RealP])
+    result = new(InstanceCategory[RealV, RealP])
 
-    result.vertices = newBuffer(GlDynamicDraw)
-    result.properties = newBuffer(GlDynamicDraw)
-    result.indices = newBuffer(GlDynamicDraw)
-
-    glGenVertexArrays(1, addr result.configuration)
+    result.vertices = newBuffer(GL_DYNAMIC_DRAW, 1024)
+    result.properties = newBuffer(GL_DYNAMIC_DRAW, 1024)
+    result.indices = newBuffer(GL_DYNAMIC_DRAW, 1024)
 
     result.perInstance = int32(indices.len)
 
-    # state
-    glBindVertexArray(result.configuration)
+    glGenVertexArrays(1, addr result.layout)
 
-    result.vertices.bindTo(GlArrayBuffer)
+    # state
+    glBindVertexArray(result.layout)
+
+    result.vertices.bindTo(GL_ARRAY_BUFFER)
     declareAttributes(*program, V)
 
-    result.properties.bindTo(GlArrayBuffer)
+    result.properties.bindTo(GL_ARRAY_BUFFER)
     declareAttributes(*program, P, true)
 
-    result.indices.bindTo(GlElementArrayBuffer)
+    result.indices.bindTo(GL_ELEMENT_ARRAY_BUFFER)
 
     # data
     discard result.vertices.add(newBatch(vertices))
     discard result.indices.add(newBatch(indices))
 
-proc add*[V, P](category: var ShapeCategory[V, P], properties: P) =
-    discard category.properties.add(newBatch(properties))
-    inc category.instances
+proc add*[V, P](c: var InstanceCategory[V, P], properties: P) =
+    discard c.properties.add(newBatch(properties))
+    inc c.instances
 
-proc draw*(category: ShapeCategory) =
-    glBindVertexArray(category.configuration)
-    glDrawElementsInstanced(GL_TRIANGLES, category.perInstance, GL_UNSIGNED_INT, nil, category.instances)
+proc draw*[V, P](c: InstanceCategory[V, P]) =
+    glBindVertexArray(c.layout)
+    glDrawElementsInstanced(GL_TRIANGLES, c.perInstance, GL_UNSIGNED_INT, nil, c.instances)
