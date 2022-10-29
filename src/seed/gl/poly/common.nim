@@ -1,6 +1,5 @@
 import ../attributes, ../buffers
 import ../shaders/[types]
-import data
 
 import vmath
 
@@ -39,6 +38,10 @@ proc newShapeCategory*[V, P, RealV, RealP](program: ShaderProgram, vertices: seq
     # data
     discard result.vertices.add(newBatch(vertices))
     discard result.indices.add(newBatch(indices))
+
+proc add*[V, P](category: var ShapeCategory[V, P], properties: P) =
+    discard category.properties.add(newBatch(properties))
+    inc category.instances
 
 proc draw*(category: ShapeCategory) =
     glBindVertexArray(category.configuration)

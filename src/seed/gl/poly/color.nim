@@ -78,13 +78,7 @@ proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()) =
         categories[sides] = newShapeCategory[VertexRepr, PropertiesRepr, Vec2, Properties](program, newPolyVertices(sides), newPolyIndices(uint32 sides))
         categories[sides]
 
-    let properties = newProperties(color, model)
-    let indices = newPolyIndices(uint32(sides))
-
-    discard category.properties.add(newBatch(properties))
-    discard category.indices.add(newBatch(indices))
-
-    category.instances += 1
+    category.add(newProperties(color, model))
 
 proc drawColorPolygons*() =
     program.use()
