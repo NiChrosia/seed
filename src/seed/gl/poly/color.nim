@@ -76,7 +76,7 @@ proc initializeColorPolygons*() =
 
 var categories: Table[int, Category]
 
-proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()): ShapeHandle =
+proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()) =
     var category = try:
         categories[sides]
     except KeyError:
@@ -90,7 +90,7 @@ proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()): ShapeHandle =
     let properties = newProperties(color, model)
     let indices = newPolyIndices(uint32(sides))
 
-    result.offset = category.properties.add(newBatch(properties))
+    discard category.properties.add(newBatch(properties))
     discard category.indices.add(newBatch(indices))
 
     category.instances += 1

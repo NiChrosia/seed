@@ -6,11 +6,6 @@ import vmath
 import opengl
 
 type
-    ShapeHandle* = object
-        offset*: int32
-
-    # shapes
-
     ShapeCategory*[V, P] = ref object
         vertices*, properties*, indices*: Buffer
         configuration*: uint32

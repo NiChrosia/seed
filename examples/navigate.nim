@@ -35,7 +35,7 @@ color.program.use()
 color.view.set(cast[array[16, float32]](mat4()), false)
 color.project.set(cast[array[16, float32]](perspective(45f, window.size.x / window.size.y, 0.1f, 10000f)), false)
 
-discard colorPoly(4, vec4(vec3(1f), 1f))
+colorPoly(4, vec4(vec3(1f), 1f))
 
 window.onResize = proc() =
     glViewport(0, 0, window.size.x, window.size.y)
@@ -56,7 +56,7 @@ proc onClick() =
             .`*` rotate(TAU.float32 / 8f, vec3(0f, 0f, 1f))
             .`*` scale(vec3(2f, 2f, 1f))
 
-        discard colorPoly(4, vec4(0f, 0.5f, 1f, 1f), matrix)
+        colorPoly(4, vec4(0f, 0.5f, 1f, 1f), matrix)
 
     block:
         let matrix = translate(camera.position)
@@ -65,7 +65,7 @@ proc onClick() =
             .`*` rotate(-arctan2(camera.front.x, camera.front.z), vec3(0f, 1f, 0f))
             .`*` rotate(TAU.float32 / 8f, vec3(0f, 0f, 1f))
 
-        discard colorPoly(4, vec4(1f, 0f, 1f, 1f), matrix)
+        colorPoly(4, vec4(1f, 0f, 1f, 1f), matrix)
 
     block:
         let matrix = translate(camera.position)
@@ -75,7 +75,7 @@ proc onClick() =
             .`*` scale(vec3(2f, 1f, 1f))
             .`*` rotate(TAU.float32 / 8f, vec3(0f, 0f, 1f))
 
-        discard colorPoly(4, vec4(bases[rand(0..3)], 1f), matrix)
+        colorPoly(4, vec4(bases[rand(0..3)], 1f), matrix)
 
 proc handleInput() =
     camera.move(window.buttonDown)
