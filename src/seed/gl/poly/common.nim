@@ -13,11 +13,9 @@ type
 
         perInstance, instances*: int32
 
-## shape categories
-
-proc newShapeCategory*[V, P, RealV](program: ShaderProgram, vertices: seq[RealV], indices: seq[uint32]): ShapeCategory[RealV, P] =
+proc newShapeCategory*[V, P, RealV, RealP](program: ShaderProgram, vertices: seq[RealV], indices: seq[uint32]): ShapeCategory[RealV, RealP] =
     # fields
-    result = new(ShapeCategory[RealV, P])
+    result = new(ShapeCategory[RealV, RealP])
 
     result.vertices = newBuffer(GlDynamicDraw)
     result.properties = newBuffer(GlDynamicDraw)
