@@ -1,4 +1,4 @@
-import ../attributes, ../buffers, ../macroutils
+import ../attributes, ../buffers
 import ../shaders/[types]
 
 import vmath
@@ -16,24 +16,6 @@ type
         configuration*: uint32
 
         perInstance, instances*: int32
-
-## drawers
-
-# init
-
-# proc newDrawer*(mode: GLenum, vertices: int32): NormalDrawer =
-#     result.assign(mode, vertices)
-
-# proc newInstancedDrawer*(mode: GLenum, vertices: int32): InstancedDrawer =
-#     result.assign(mode, vertices)
-
-# # usage
-
-# proc draw*(drawer: NormalDrawer) =
-#     glDrawElements(drawer.mode, drawer.vertices, GL_UNSIGNED_INT, nil)
-
-# proc draw*(drawer: InstancedDrawer) =
-#     glDrawElementsInstanced(drawer.mode, drawer.vertices, GL_UNSIGNED_INT, nil, drawer.count)
 
 ## shape categories
 
@@ -60,8 +42,6 @@ proc newShapeCategory*[V, P](program: ShaderProgram, perInstance: int32): ShapeC
 
     result.indices.bindTo(GlElementArrayBuffer)
 
-proc use*(category: ShapeCategory) =
-    glBindVertexArray(category.configuration)
-
 proc draw*(category: ShapeCategory) =
+    glBindVertexArray(category.configuration)
     glDrawElementsInstanced(GL_TRIANGLES, category.perInstance, GL_UNSIGNED_INT, nil, category.instances)

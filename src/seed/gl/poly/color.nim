@@ -99,5 +99,4 @@ proc drawColorPolygons*() =
     program.use()
 
     for category in categories.values:
-        category.use()
         category.draw()
