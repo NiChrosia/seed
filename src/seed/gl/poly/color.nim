@@ -30,7 +30,7 @@ type
         color: Vector[4, float32]
         model: SquareMatrix[4, float32]
 
-    Category = ShapeCategory[VertexRepr, PropertiesRepr, uint8, InstancedDrawer]
+    Category = ShapeCategory[VertexRepr, PropertiesRepr, InstancedDrawer]
 
     # properties
 
@@ -42,10 +42,10 @@ proc newProperties(color: Vec4, model: Mat4): Properties =
     result.assign(color, model)
 
 proc newDrawer(sides: int): InstancedDrawer =
-    return newInstancedDrawer(GlTriangles, GlUnsignedByte, int32(3 * sides))
+    return newInstancedDrawer(GlTriangles, int32(3 * sides))
 
 proc newCategory(program: ShaderProgram, drawer: InstancedDrawer): Category =
-    return newShapeCategory[VertexRepr, PropertiesRepr, uint8, InstancedDrawer](program, drawer)
+    return newShapeCategory[VertexRepr, PropertiesRepr, InstancedDrawer](program, drawer)
 
 # shaders
 
@@ -92,7 +92,7 @@ proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()): ShapeHandle =
         categories[sides]
 
     let properties = newProperties(color, model)
-    let indices = newPolyIndices(uint8(sides))
+    let indices = newPolyIndices(uint32(sides))
 
     result.offset = category.properties.add(newBatch(properties))
     discard category.indices.add(newBatch(indices))

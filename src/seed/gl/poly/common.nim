@@ -6,15 +6,13 @@ import vmath
 import opengl
 
 type
-    Index* = uint32
-
     ShapeHandle* = object
         offset*: int32
 
     # drawers
 
     NormalDrawer* = object of RootObj
-        mode, index: GlEnum
+        mode: GlEnum
         vertices: int32
 
     InstancedDrawer* = object of NormalDrawer
@@ -22,7 +20,7 @@ type
 
     # shapes
 
-    ShapeCategory*[V, P, I, D] = ref object
+    ShapeCategory*[V, P, D] = ref object
         vertices*, properties*, indices*: Buffer
         configuration*: uint32
 
@@ -32,33 +30,24 @@ type
 
 # init
 
-proc newDrawer*(mode, index: GlEnum, vertices: int32): NormalDrawer =
-    result.assign(mode, index, vertices)
+proc newDrawer*(mode: GLenum, vertices: int32): NormalDrawer =
+    result.assign(mode, vertices)
 
-proc newInstancedDrawer*(mode, index: GlEnum, vertices: int32): InstancedDrawer =
-    result.assign(mode, index, vertices)
+proc newInstancedDrawer*(mode: GLenum, vertices: int32): InstancedDrawer =
+    result.assign(mode, vertices)
 
 # usage
 
 proc draw*(drawer: NormalDrawer) =
-    glDrawElements(drawer.mode, drawer.vertices, drawer.index, nil)
+    glDrawElements(drawer.mode, drawer.vertices, GL_UNSIGNED_INT, nil)
 
 proc draw*(drawer: InstancedDrawer) =
-    glDrawElementsInstanced(drawer.mode, drawer.vertices, drawer.index, nil, drawer.count)
-
-## shape classes
-
-# proc newShapeClass*(vertexSource, fragmentSource: string): ShapeClass =
-#     let vertexShader = initShader(sVertex, vertexSource, true)
-#     let fragmentShader = initShader(sFragment, fragmentSource, true)
-
-#     result = new(ShapeClass)
-#     result.program = initProgram([vertexShader, fragmentShader], true)
+    glDrawElementsInstanced(drawer.mode, drawer.vertices, GL_UNSIGNED_INT, nil, drawer.count)
 
 ## shape categories
 
-proc newShapeCategory*[V, P, I, D](program: ShaderProgram, drawer: D): ShapeCategory[V, P, I, D] =
-    result = new(ShapeCategory[V, P, I, D])
+proc newShapeCategory*[V, P, D](program: ShaderProgram, drawer: D): ShapeCategory[V, P, D] =
+    result = new(ShapeCategory[V, P, D])
 
     result.drawer = drawer
 

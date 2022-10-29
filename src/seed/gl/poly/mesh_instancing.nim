@@ -7,13 +7,13 @@ type
 
         perInstance, instances: int32
 
-proc initInstCategory*[V, P](program: ShaderProgram, vertices: seq[V], indices: seq[uint32]): InstanceCategory[V, P] =
+proc initInstCategory*[VR, PR, V, P](program: ShaderProgram, vertices: seq[V], indices: seq[uint32]): InstanceCategory[V, P] =
     # fields
     result.vertices = newBuffer(GL_DYNAMIC_DRAW, 1024)
     result.properties = newBuffer(GL_DYNAMIC_DRAW, 1024)
     result.indices = newBuffer(GL_DYNAMIC_DRAW, 1024)
 
-    result.perInstance = vertices.len
+    result.perInstance = int32(vertices.len)
 
     glGenVertexArrays(1, addr result.layout)
 
@@ -21,10 +21,10 @@ proc initInstCategory*[V, P](program: ShaderProgram, vertices: seq[V], indices: 
     glBindVertexArray(result.layout)
 
     result.vertices.bindTo(GL_ARRAY_BUFFER)
-    declareAttributes(*program, V)
+    declareAttributes(*program, VR)
 
     result.properties.bindTo(GL_ARRAY_BUFFER)
-    declareAttributes(*program, P, true)
+    declareAttributes(*program, PR, true)
 
     result.indices.bindTo(GL_ELEMENT_ARRAY_BUFFER)
 
