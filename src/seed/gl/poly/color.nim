@@ -30,7 +30,7 @@ type
         color: Vector[4, float32]
         model: SquareMatrix[4, float32]
 
-    Category = ShapeCategory[VertexRepr, PropertiesRepr, InstancedDrawer]
+    Category = ShapeCategory[VertexRepr, PropertiesRepr]
 
     # properties
 
@@ -41,11 +41,8 @@ type
 proc newProperties(color: Vec4, model: Mat4): Properties =
     result.assign(color, model)
 
-proc newDrawer(sides: int): InstancedDrawer =
-    return newInstancedDrawer(GlTriangles, int32(3 * sides))
-
-proc newCategory(program: ShaderProgram, drawer: InstancedDrawer): Category =
-    return newShapeCategory[VertexRepr, PropertiesRepr, InstancedDrawer](program, drawer)
+proc newCategory(program: ShaderProgram, perInstance: int32): Category =
+    return newShapeCategory[VertexRepr, PropertiesRepr](program, perInstance)
 
 # shaders
 
@@ -83,8 +80,7 @@ proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()): ShapeHandle =
     var category = try:
         categories[sides]
     except KeyError:
-        let drawer = newDrawer(sides)
-        categories[sides] = newCategory(program, drawer)
+        categories[sides] = newCategory(program, int32 newPolyIndices(sides).len)
 
         let vertices = newPolyVertices(sides)
         discard categories[sides].vertices.add(newBatch(vertices))
@@ -97,7 +93,7 @@ proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()): ShapeHandle =
     result.offset = category.properties.add(newBatch(properties))
     discard category.indices.add(newBatch(indices))
 
-    category.drawer.count += 1
+    category.instances += 1
 
 proc drawColorPolygons*() =
     program.use()

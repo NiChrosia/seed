@@ -9,53 +9,44 @@ type
     ShapeHandle* = object
         offset*: int32
 
-    # drawers
-
-    NormalDrawer* = object of RootObj
-        mode: GlEnum
-        vertices: int32
-
-    InstancedDrawer* = object of NormalDrawer
-        count*: int32
-
     # shapes
 
-    ShapeCategory*[V, P, D] = ref object
+    ShapeCategory*[V, P] = ref object
         vertices*, properties*, indices*: Buffer
         configuration*: uint32
 
-        drawer*: D
+        perInstance, instances*: int32
 
 ## drawers
 
 # init
 
-proc newDrawer*(mode: GLenum, vertices: int32): NormalDrawer =
-    result.assign(mode, vertices)
+# proc newDrawer*(mode: GLenum, vertices: int32): NormalDrawer =
+#     result.assign(mode, vertices)
 
-proc newInstancedDrawer*(mode: GLenum, vertices: int32): InstancedDrawer =
-    result.assign(mode, vertices)
+# proc newInstancedDrawer*(mode: GLenum, vertices: int32): InstancedDrawer =
+#     result.assign(mode, vertices)
 
-# usage
+# # usage
 
-proc draw*(drawer: NormalDrawer) =
-    glDrawElements(drawer.mode, drawer.vertices, GL_UNSIGNED_INT, nil)
+# proc draw*(drawer: NormalDrawer) =
+#     glDrawElements(drawer.mode, drawer.vertices, GL_UNSIGNED_INT, nil)
 
-proc draw*(drawer: InstancedDrawer) =
-    glDrawElementsInstanced(drawer.mode, drawer.vertices, GL_UNSIGNED_INT, nil, drawer.count)
+# proc draw*(drawer: InstancedDrawer) =
+#     glDrawElementsInstanced(drawer.mode, drawer.vertices, GL_UNSIGNED_INT, nil, drawer.count)
 
 ## shape categories
 
-proc newShapeCategory*[V, P, D](program: ShaderProgram, drawer: D): ShapeCategory[V, P, D] =
-    result = new(ShapeCategory[V, P, D])
-
-    result.drawer = drawer
+proc newShapeCategory*[V, P](program: ShaderProgram, perInstance: int32): ShapeCategory[V, P] =
+    result = new(ShapeCategory[V, P])
 
     result.vertices = newBuffer(GlDynamicDraw)
     result.properties = newBuffer(GlDynamicDraw)
     result.indices = newBuffer(GlDynamicDraw)
 
     glGenVertexArrays(1, addr result.configuration)
+
+    result.perInstance = perInstance
 
     # configuration
 
@@ -73,4 +64,4 @@ proc use*(category: ShapeCategory) =
     glBindVertexArray(category.configuration)
 
 proc draw*(category: ShapeCategory) =
-    category.drawer.draw()
+    glDrawElementsInstanced(GL_TRIANGLES, category.perInstance, GL_UNSIGNED_INT, nil, category.instances)
