@@ -1,10 +1,9 @@
 import ../src/seed/gl/poly
 import ../src/seed/gl/shaders/[types, shaders, programs, uniforms], ../src/seed/gl/cameras
 
-import vmath, windy, shady #, chroma
+import vmath, windy, shady
 import opengl
 
-# import std/[times]
 import std/random
 
 randomize()

@@ -1,8 +1,8 @@
 import instcategories, data
 import ../buffers, ../attributes, ../macroutils
-import ../shaders/[types, programs]
+import ../shaders/[types, programs, shaders]
 
-import vmath
+import vmath, shady
 import opengl
 
 import std/[tables]
@@ -31,6 +31,24 @@ discard propertyBuilder
     .m(kFloat, 4, 4, "model", divisor = 1)
 
 # api
+proc minimumProgram*(): ShaderProgram =
+    ## basic program required for this module
+
+    proc processVertex(
+        gl_Position: var Vec4, vColor: var Vec4, 
+        pos: Vec2, color: Vec4, model: Mat4
+    ) =
+        gl_Position = model * vec4(vec3(pos, 0f), 1f)
+        vColor = color
+
+    proc processFragment(FragColor: var Vec4, vColor: Vec4) =
+        FragColor = vColor
+
+    var vertexShader = initShader(sVertex, toGLSL(processVertex), true)
+    var fragmentShader = initShader(sFragment, toGLSL(processFragment), true)
+
+    return initProgram([vertexShader, fragmentShader], true)
+
 proc init*(program: ShaderProgram) =
     ## program needs a vertex shader with:
     ## - pos: vec2
