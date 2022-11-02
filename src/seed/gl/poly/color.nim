@@ -21,20 +21,16 @@ and the correlated buffers.
 # properties
 
 type
-    # repr
-
-    VertexRepr = object
-        pos: Vector[2, float32]
-
-    PropertiesRepr = object
-        color: Vector[4, float32]
-        model: SquareMatrix[4, float32]
-
-    # properties
-
     Properties = object
         color: Vec4
         model: Mat4
+
+var vertexBuilder: AttributeBuilder
+discard vertexBuilder.v(kFloat, 2, "pos")
+
+var propertyBuilder: AttributeBuilder
+discard propertyBuilder.v(kFloat, 4, "color", divisor = 1)
+    .m(kFloat, 4, 4, "model", divisor = 1)
 
 proc newProperties(color: Vec4, model: Mat4): Properties =
     result.assign(color, model)
@@ -75,7 +71,7 @@ proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()) =
     var category = try:
         categories[sides]
     except KeyError:
-        categories[sides] = initInstCategory[VertexRepr, PropertiesRepr, Vec2, Properties](program, newPolyVertices(sides), newPolyIndices(uint32 sides))
+        categories[sides] = initInstCategory[Vec2, Properties](program, vertexBuilder, propertyBuilder, newPolyVertices(sides), newPolyIndices(uint32 sides))
         categories[sides]
 
     category.add(newProperties(color, model))

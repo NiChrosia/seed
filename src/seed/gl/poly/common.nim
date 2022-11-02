@@ -10,9 +10,9 @@ type
 
         perInstance, instances: int32
 
-proc initInstCategory*[V, P, RealV, RealP](program: ShaderProgram, vertices: seq[RealV], indices: seq[uint32]): InstanceCategory[RealV, RealP] =
+proc initInstCategory*[V, P](program: ShaderProgram, vertexBuilder, propertyBuilder: var AttributeBuilder, vertices: seq[V], indices: seq[uint32]): InstanceCategory[V, P] =
     # fields
-    result = new(InstanceCategory[RealV, RealP])
+    result = new(InstanceCategory[V, P])
 
     result.vertices = newBuffer(GL_DYNAMIC_DRAW, 1024)
     result.properties = newBuffer(GL_DYNAMIC_DRAW, 1024)
@@ -26,10 +26,14 @@ proc initInstCategory*[V, P, RealV, RealP](program: ShaderProgram, vertices: seq
     glBindVertexArray(result.layout)
 
     result.vertices.bindTo(GL_ARRAY_BUFFER)
-    declareAttributes(*program, V)
+    vertexBuilder.a(result.layout)
+        .p(*program)
+        .build()
 
     result.properties.bindTo(GL_ARRAY_BUFFER)
-    declareAttributes(*program, P, true)
+    propertyBuilder.a(result.layout)
+        .p(*program)
+        .build()
 
     result.indices.bindTo(GL_ELEMENT_ARRAY_BUFFER)
 
