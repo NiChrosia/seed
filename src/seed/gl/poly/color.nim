@@ -54,16 +54,12 @@ proc processFragment(FragColor: var Vec4, vColor: Vec4) =
 
 var
     program*: ShaderProgram
-    view*, project*: UniformLocation
 
 proc initializeColorPolygons*() =
     let vertexShader = initShader(sVertex, toGLSL(processVertex), true)
     let fragmentShader = initShader(sFragment, toGLSL(processFragment), true)
 
     program = initProgram([vertexShader, fragmentShader], true)
-
-    view = program.locate("view")
-    project = program.locate("project")
 
 # usage
 

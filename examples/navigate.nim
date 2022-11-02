@@ -32,8 +32,11 @@ initializeColorPolygons()
 
 color.program.use()
 
-color.view.set(cast[array[16, float32]](mat4()), false)
-color.project.set(cast[array[16, float32]](perspective(45f, window.size.x / window.size.y, 0.1f, 10000f)), false)
+var view = color.program.locate("view")
+var project = color.program.locate("project")
+
+view.set(cast[array[16, float32]](mat4()), false)
+project.set(cast[array[16, float32]](perspective(45f, window.size.x / window.size.y, 0.1f, 10000f)), false)
 
 poly(4, vec4(vec3(1f), 1f))
 
@@ -91,7 +94,7 @@ window.onFrame = proc() =
     glClear(GL_COLOR_BUFFER_BIT)
 
     color.program.use()
-    color.view.set(cast[array[16, float32]](camera.matrix()), false)
+    view.set(cast[array[16, float32]](camera.matrix()), false)
 
     drawColorPolygons()
 
