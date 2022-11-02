@@ -71,7 +71,7 @@ proc poly*(sides: int, color: Vec4, model: Mat4 = mat4()) =
 
     category.add(newProperties(color, model))
 
-proc drawColorPolygons*() =
+proc draw*() =
     program.use()
 
     for category in categories.values:

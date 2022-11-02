@@ -112,7 +112,7 @@ window.onFrame = proc() =
     program.use()
     view.set(cast[array[16, float32]](camera.matrix()), false)
 
-    drawColorPolygons()
+    color.draw()
 
 while not window.closeRequested:
     handleInput()
