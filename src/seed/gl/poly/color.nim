@@ -67,7 +67,7 @@ proc initializeColorPolygons*() =
 
 var categories: Table[int, InstanceCategory[Vec2, Properties]]
 
-proc colorPoly*(sides: int, color: Vec4, model: Mat4 = mat4()) =
+proc poly*(sides: int, color: Vec4, model: Mat4 = mat4()) =
     var category = try:
         categories[sides]
     except KeyError:
