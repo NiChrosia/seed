@@ -39,7 +39,7 @@ proc processVertex(
 proc processFragment(FragColor: var Vec4, vColor: Vec4) =
     FragColor = vColor
 
-initializeColorPolygons(toGLSL(processVertex), toGLSL(processFragment))
+color.init(toGLSL(processVertex), toGLSL(processFragment))
 
 color.program.use()
 

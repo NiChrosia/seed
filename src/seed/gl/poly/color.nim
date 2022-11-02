@@ -42,7 +42,7 @@ proc newProperties(color: Vec4, model: Mat4): Properties =
 var
     program*: ShaderProgram
 
-proc initializeColorPolygons*(vText, fText: string) =
+proc init*(vText, fText: string) =
     let vertexShader = initShader(sVertex, vText, true)
     let fragmentShader = initShader(sFragment, fText, true)
 
