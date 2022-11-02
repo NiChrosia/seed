@@ -1,8 +1,8 @@
 import common, data
 import ../buffers, ../attributes, ../macroutils
-import ../shaders/[types, programs, uniforms, shaders]
+import ../shaders/[types, programs]
 
-import vmath, shady
+import vmath
 import opengl
 
 import std/[tables]
@@ -42,11 +42,14 @@ proc newProperties(color: Vec4, model: Mat4): Properties =
 var
     program*: ShaderProgram
 
-proc init*(vText, fText: string) =
-    let vertexShader = initShader(sVertex, vText, true)
-    let fragmentShader = initShader(sFragment, fText, true)
-
-    program = initProgram([vertexShader, fragmentShader], true)
+proc init*(program: ShaderProgram) =
+    ## program needs a vertex shader with:
+    ## - pos: vec2
+    ## (instanced, with a divisor of 1)
+    ## - color: vec4
+    ## - model: mat4
+    
+    color.program = program
 
 # usage
 

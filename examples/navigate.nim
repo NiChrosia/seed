@@ -1,5 +1,5 @@
 import ../src/seed/gl/poly/color
-import ../src/seed/gl/shaders/[programs, uniforms], ../src/seed/gl/cameras
+import ../src/seed/gl/shaders/[types, shaders, programs, uniforms], ../src/seed/gl/cameras
 
 import vmath, windy, shady #, chroma
 import opengl
@@ -39,12 +39,17 @@ proc processVertex(
 proc processFragment(FragColor: var Vec4, vColor: Vec4) =
     FragColor = vColor
 
-color.init(toGLSL(processVertex), toGLSL(processFragment))
+var vertexShader = initShader(sVertex, toGLSL(processVertex), true)
+var fragmentShader = initShader(sFragment, toGLSL(processFragment), true)
 
-color.program.use()
+var program = initProgram([vertexShader, fragmentShader], true)
 
-var view = color.program.locate("view")
-var project = color.program.locate("project")
+color.init(program)
+
+program.use()
+
+var view = program.locate("view")
+var project = program.locate("project")
 
 view.set(cast[array[16, float32]](mat4()), false)
 project.set(cast[array[16, float32]](perspective(45f, window.size.x / window.size.y, 0.1f, 10000f)), false)
@@ -104,7 +109,7 @@ window.onFrame = proc() =
     glClearColor(0.2f, 0.3f, 0.3f, 1f)
     glClear(GL_COLOR_BUFFER_BIT)
 
-    color.program.use()
+    program.use()
     view.set(cast[array[16, float32]](camera.matrix()), false)
 
     drawColorPolygons()
