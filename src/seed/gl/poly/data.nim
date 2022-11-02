@@ -30,6 +30,7 @@ proc newRectVertices*(): seq[Vec2] =
 
 # equilaterals
 
+# todo: implement fan triangulation
 proc newPolyVertices*(sides: int): seq[Vec2] =
     if sides in 3 .. 4:
         if sides == 3:

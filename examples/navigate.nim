@@ -1,4 +1,4 @@
-import ../src/seed/gl/poly/color
+import ../src/seed/gl/poly
 import ../src/seed/gl/shaders/[types, shaders, programs, uniforms], ../src/seed/gl/cameras
 
 import vmath, windy, shady #, chroma
@@ -44,7 +44,7 @@ var fragmentShader = initShader(sFragment, toGLSL(processFragment), true)
 
 var program = initProgram([vertexShader, fragmentShader], true)
 
-color.init(program)
+poly.init(program)
 
 program.use()
 
@@ -112,7 +112,7 @@ window.onFrame = proc() =
     program.use()
     view.set(cast[array[16, float32]](camera.matrix()), false)
 
-    color.draw()
+    poly.draw()
 
 while not window.closeRequested:
     handleInput()

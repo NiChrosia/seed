@@ -1,4 +1,4 @@
-import common, data
+import instcategories, data
 import ../buffers, ../attributes, ../macroutils
 import ../shaders/[types, programs]
 
@@ -7,53 +7,37 @@ import opengl
 
 import std/[tables]
 
-#[
-
-this system is bad.
-it includes a number of things it shouldn't, like the shaders,
-and overall, it's an overabstraction
-
-instead, there should simply be something to represent a draw call,
-and the correlated buffers.
-
-]#
-
-# properties
-
 type
     Properties = object
         color: Vec4
         model: Mat4
 
-var vertexBuilder: AttributeBuilder
+# properties
+proc newProperties(color: Vec4, model: Mat4): Properties =
+    result.assign(color, model)
+
+# variables & setup
+var
+    categories: Table[int, InstanceCategory[Vec2, Properties]]
+    program: ShaderProgram
+
+    vertexBuilder, propertyBuilder: AttributeBuilder
+
 discard vertexBuilder
     .v(kFloat, 2, "pos")
 
-var propertyBuilder: AttributeBuilder
 discard propertyBuilder
     .v(kFloat, 4, "color", divisor = 1)
     .m(kFloat, 4, 4, "model", divisor = 1)
 
-proc newProperties(color: Vec4, model: Mat4): Properties =
-    result.assign(color, model)
-
-# class
-
-var
-    program*: ShaderProgram
-
+# api
 proc init*(program: ShaderProgram) =
     ## program needs a vertex shader with:
     ## - pos: vec2
-    ## (instanced, with a divisor of 1)
-    ## - color: vec4
-    ## - model: mat4
+    ## - color: vec4 (instanced [divisor of 1])
+    ## - model: mat4 (instanced [1])
     
-    color.program = program
-
-# usage
-
-var categories: Table[int, InstanceCategory[Vec2, Properties]]
+    poly.program = program
 
 proc poly*(sides: int, color: Vec4, model: Mat4 = mat4()) =
     var category = try:
