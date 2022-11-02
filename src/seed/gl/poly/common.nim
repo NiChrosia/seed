@@ -23,15 +23,15 @@ proc initInstCategory*[V, P](program: ShaderProgram, vertexBuilder, propertyBuil
     glGenVertexArrays(1, addr result.layout)
 
     # state
-    glBindVertexArray(result.layout)
-
-    result.vertices.bindTo(GL_ARRAY_BUFFER)
-    vertexBuilder.a(result.layout)
+    vertexBuilder
+        .a(result.layout)
+        .b(result.vertices.handle)
         .p(*program)
         .build()
 
-    result.properties.bindTo(GL_ARRAY_BUFFER)
-    propertyBuilder.a(result.layout)
+    propertyBuilder
+        .a(result.layout)
+        .b(result.properties.handle)
         .p(*program)
         .build()
 

@@ -26,10 +26,12 @@ type
         model: Mat4
 
 var vertexBuilder: AttributeBuilder
-discard vertexBuilder.v(kFloat, 2, "pos")
+discard vertexBuilder
+    .v(kFloat, 2, "pos")
 
 var propertyBuilder: AttributeBuilder
-discard propertyBuilder.v(kFloat, 4, "color", divisor = 1)
+discard propertyBuilder
+    .v(kFloat, 4, "color", divisor = 1)
     .m(kFloat, 4, 4, "model", divisor = 1)
 
 proc newProperties(color: Vec4, model: Mat4): Properties =
@@ -71,8 +73,15 @@ proc poly*(sides: int, color: Vec4, model: Mat4 = mat4()) =
     var category = try:
         categories[sides]
     except KeyError:
-        categories[sides] = initInstCategory[Vec2, Properties](program, vertexBuilder, propertyBuilder, newPolyVertices(sides), newPolyIndices(uint32 sides))
-        categories[sides]
+        var category = initInstCategory[Vec2, Properties](
+            program, 
+            vertexBuilder, propertyBuilder, 
+            newPolyVertices(sides), newPolyIndices(uint32 sides)
+        )
+
+        categories[sides] = category
+
+        category
 
     category.add(newProperties(color, model))
 
