@@ -4,7 +4,7 @@ import vmath
 #[
 
 a few things need to be addressed before this
-is mostly functional, which are the following:
+can be considered good enough, which are the following:
 
 - polygons stay on the screen; this can either be
   fixed by making objects deleted after one frame,
