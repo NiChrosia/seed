@@ -1,10 +1,10 @@
 import vmath
 
 proc newPolyVertices*(sides: int): seq[Vec2] =
-    let increment = 360f / float32(sides)
+    let increment = TAU / float32(sides)
 
     for index in 0 ..< sides:
-        let angle = degToRad(increment * float32(index))
+        let angle = increment * float32(index)
 
         let x = cos(angle)
         let y = sin(angle)
