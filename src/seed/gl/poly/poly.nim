@@ -64,7 +64,7 @@ proc poly*(sides: int, color: Vec4, model: Mat4 = mat4()) =
         var category = initInstCategory[Vec2, Properties](
             program, 
             vertexBuilder, propertyBuilder, 
-            newPolyVertices(sides), newPolyIndices(uint32 sides)
+            newPolyVertices(sides), newPolyIndices(sides)
         )
 
         categories[sides] = category
