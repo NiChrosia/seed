@@ -8,7 +8,7 @@ type
         vertices, properties, indices: Buffer
         layout: uint32
 
-        perInstance, instances: int32
+        perInstance, instances*: int32
 
 proc initInstCategory*[V, P](program: ShaderProgram, vertexBuilder, propertyBuilder: var AttributeBuilder, vertices: seq[V], indices: seq[uint32]): InstanceCategory[V, P] =
     # fields
@@ -45,6 +45,10 @@ proc add*[V, P](c: var InstanceCategory[V, P], properties: P) =
     discard c.properties.add(newBatch(properties))
     inc c.instances
 
+proc clear*(c: var InstanceCategory) =
+    c.properties.occupied = 0
+    c.instances = 0
+
 proc draw*[V, P](c: InstanceCategory[V, P]) =
     glBindVertexArray(c.layout)
-    glDrawElementsInstanced(GL_TRIANGLES, c.perInstance, GL_UNSIGNED_INT, nil, c.instances)
+    glDrawElementsInstanced(GL_TRIANGLE_FAN, c.perInstance, GL_UNSIGNED_INT, nil, c.instances)

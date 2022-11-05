@@ -13,7 +13,5 @@ proc newPolyVertices*(sides: int): seq[Vec2] =
         result.add(v)
 
 proc newPolyIndices*(sides: int): seq[uint32] =
-    for i in 1 .. (uint32(sides) - 2):
-        result.add(0)
+    for i in 0 ..< uint32(sides):
         result.add(i)
-        result.add(i + 1)

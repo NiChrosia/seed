@@ -73,6 +73,12 @@ proc poly*(sides: int, color: Vec4, model: Mat4 = mat4()) =
 
     category.add(newProperties(color, model))
 
+proc clear*() =
+    for s in categories.keys:
+        var c = categories[s]
+
+        c.clear()
+
 proc draw*() =
     program.use()
 
