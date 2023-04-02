@@ -1,4 +1,4 @@
-import ../api/gl/[textures, shaders, ssbos], ../api/rendering/[atlases, cameras], "."/[state], drawers/[squares], ../assets
+import ../api/gl/[textures, shaders, ssbos], ../api/rendering/[atlases, cameras], "."/[state], drawers/[quads], ../assets
 import opengl, vmath
 
 var

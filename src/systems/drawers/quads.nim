@@ -14,7 +14,7 @@ type
     Vertex = object
         position:   Vec3
         texCoords:  Vec2
-        modelIndex: int
+        modelIndex: GLint
 
 proc init*(_: typedesc[QuadBatch], theAtlas: ptr Atlas, theModelBuffer: ptr Ssbo): QuadBatch =
     # buffers
@@ -35,7 +35,7 @@ proc init*(_: typedesc[QuadBatch], theAtlas: ptr Atlas, theModelBuffer: ptr Ssbo
 
         glVertexArrayAttribFormat(result.vao, 0, 3, cGL_FLOAT, false, GLuint(Vertex.offsetOf(position)))
         glVertexArrayAttribFormat(result.vao, 1, 2, cGL_FLOAT, false, GLuint(Vertex.offsetOf(texCoords)))
-        glVertexArrayAttribFormat(result.vao, 2, 1, cGL_INT, false, GLuint(Vertex.offsetOf(modelIndex)))
+        glVertexArrayAttribIFormat(result.vao, 2, 1, cGL_INT, GLuint(Vertex.offsetOf(modelIndex)))
 
         glVertexArrayAttribBinding(result.vao, 0, 0)
         glVertexArrayAttribBinding(result.vao, 1, 0)
@@ -59,7 +59,7 @@ proc quad*(batch: var QuadBatch, positions: array[4, Vec3], quadTexCoords: array
 
         vertices[i] = Vertex(position: positions[i], texCoords: texCoords, modelIndex: index)
 
-    for i in [2, 1, 0, 1, 2, 3]:
+    for i in [0, 1, 2, 2, 3, 0]:
         batch.vertices.add(sizeof(Vertex), unsafeAddr vertices[i])
 
     batch.quadCount += 1
