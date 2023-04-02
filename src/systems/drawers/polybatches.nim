@@ -2,21 +2,21 @@ import ../../api/gl/[buffers, ssbos], ../../api/rendering/atlases
 import opengl, vmath
 
 type
-    QuadBatch* = object
+    PolyBatch* = object
         vao: GLuint
         vertices: Buffer
 
         modelBuffer: ptr Ssbo
         atlas: ptr Atlas
 
-        quadCount: GLint
+        triangles: GLint
 
     Vertex = object
         position:   Vec3
         texCoords:  Vec2
         modelIndex: GLint
 
-proc init*(_: typedesc[QuadBatch], theAtlas: ptr Atlas, theModelBuffer: ptr Ssbo): QuadBatch =
+proc init*(_: typedesc[PolyBatch], theAtlas: ptr Atlas, theModelBuffer: ptr Ssbo): PolyBatch =
     # buffers
     result.vertices = Buffer.init(GL_DYNAMIC_DRAW)
 
@@ -41,30 +41,41 @@ proc init*(_: typedesc[QuadBatch], theAtlas: ptr Atlas, theModelBuffer: ptr Ssbo
         glVertexArrayAttribBinding(result.vao, 1, 0)
         glVertexArrayAttribBinding(result.vao, 2, 0)
 
-proc draw*(batch: QuadBatch) =
+proc draw*(batch: PolyBatch) =
     ## program with matching bindings should be bound
 
     glBindVertexArray(batch.vao)
-    glDrawArrays(GL_TRIANGLES, 0, GLsizei(6 * batch.quadCount))
+    glDrawArrays(GL_TRIANGLES, 0, 3 * batch.triangles)
 
-# user-facing API
-proc quad*(batch: var QuadBatch, positions: array[4, Vec3], quadTexCoords: array[4, Vec2], texture: string, model: Mat4) =
+# shape drawing function helpers
+template indexModel(batch: var PolyBatch, model: Mat4): GLint =
     let index = GLint(batch.modelBuffer[].buffer.used div sizeof(Mat4))
     batch.modelBuffer[].buffer.add(sizeof(Mat4), unsafeAddr model)
 
-    var vertices: array[4, Vertex]
+    index
 
-    for i in 0 .. 3:
-        let texCoords = batch.atlas[].coords(texture, quadTexCoords[i])
+template transformTcs(batch: PolyBatch, texture: string, local: Vec2): Vec2 =
+    batch.atlas[].coords(texture, local)
 
-        vertices[i] = Vertex(position: positions[i], texCoords: texCoords, modelIndex: index)
+proc transformVertices(batch: var PolyBatch, poss: openArray[Vec3], texture: string, tcs: openArray[Vec2], model: Mat4): seq[Vertex] =
+    for i in 0 ..< poss.len:
+        let tc = batch.transformTcs(texture, tcs[i])
+        let mi = batch.indexModel(model)
 
-    for i in [0, 1, 2, 2, 3, 0]:
-        batch.vertices.add(sizeof(Vertex), unsafeAddr vertices[i])
+        result.add(Vertex(position: poss[i], texCoords: tc, modelIndex: mi))
 
-    batch.quadCount += 1
+# user-facing API
+proc quad*(batch: var PolyBatch, positions: array[4, Vec3], texture: string, quadTexCoords: array[4, Vec2], model: Mat4) =
+    var vertices = batch.transformVertices(positions, texture, quadTexCoords, model)
 
-proc square*(batch: var QuadBatch, texture: string, point: Vec2, model: Mat4) =
+    # 0, 1, 2; 2, 3; 0
+    batch.vertices.add(sizeof(Vertex) * 3, unsafeAddr vertices[0])
+    batch.vertices.add(sizeof(Vertex) * 2, unsafeAddr vertices[2])
+    batch.vertices.add(sizeof(Vertex) * 1, unsafeAddr vertices[0])
+
+    batch.triangles += 2
+
+proc square*(batch: var PolyBatch, texture: string, point: Vec2, model: Mat4) =
     var positions: array[4, Vec3]
     var quadTexCoords: array[4, Vec2]
 
@@ -78,4 +89,4 @@ proc square*(batch: var QuadBatch, texture: string, point: Vec2, model: Mat4) =
         positions[i] = newPoint
         quadTexCoords[i] = texCoords
 
-    batch.quad(positions, quadTexCoords, texture, model)
+    batch.quad(positions, texture, quadTexCoords, model)

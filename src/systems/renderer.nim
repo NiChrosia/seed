@@ -1,4 +1,4 @@
-import ../api/gl/[textures, shaders, ssbos], ../api/rendering/[atlases, cameras], "."/[state], drawers/[quads], ../assets
+import ../api/gl/[textures, shaders, ssbos], ../api/rendering/[atlases, cameras], "."/[state], drawers/[polybatches], ../assets
 import opengl, vmath
 
 var
@@ -6,7 +6,7 @@ var
     atlasTexture: GLuint
 
     modelBuffer: Ssbo
-    quadBatch*: QuadBatch
+    polyBatch*: PolyBatch
 
 proc setup*() =
     # shaders
@@ -47,7 +47,7 @@ proc setup*() =
     # drawers
     modelBuffer.attach(program, "Models")
 
-    quadBatch = QuadBatch.init(addr atlas, addr modelBuffer)
+    polyBatch = PolyBatch.init(addr atlas, addr modelBuffer)
 
 proc draw*() =
     # uniforms
@@ -59,4 +59,4 @@ proc draw*() =
     glUniformMatrix4fv(view, 1, false, unsafeAddr viewMatrix[0, 0])
 
     # drawers
-    quadBatch.draw()
+    polyBatch.draw()
