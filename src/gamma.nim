@@ -6,7 +6,7 @@ windows.initialize("Gamma", ivec2(800, 600), (4, 3, true))
 drawing.setup()
 controls.setCallbacks()
 
-square("white", vec2(1f))
+drawing.quadBatch.square("white", vec2(1f))
 
 # main loop
 while windowShouldClose(window) == 0:

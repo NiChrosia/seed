@@ -6,6 +6,7 @@ var
     atlasTexture: GLuint
 
     modelBuffer: Ssbo
+    quadBatch*: QuadBatch
 
 proc setup*() =
     # shaders
@@ -44,9 +45,9 @@ proc setup*() =
     modelBuffer = Ssbo.init(GL_DYNAMIC_DRAW, 0)
 
     # drawers
-    squares.setup(addr atlas, addr modelBuffer)
-
     modelBuffer.attach(program, "Models")
+
+    quadBatch = QuadBatch.init(addr atlas, addr modelBuffer)
 
 proc draw*() =
     # uniforms
@@ -58,4 +59,4 @@ proc draw*() =
     glUniformMatrix4fv(view, 1, false, unsafeAddr viewMatrix[0, 0])
 
     # drawers
-    squares.draw(program)
+    quadBatch.draw()
