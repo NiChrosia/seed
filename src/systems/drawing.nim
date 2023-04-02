@@ -1,4 +1,4 @@
-import ../api/gl/[atlas, textures, shaders, cameras], "."/[state], drawers/[squares], ../assets
+import ../api/gl/[textures, shaders], ../api/rendering/[atlases, cameras], "."/[state], drawers/[squares], ../assets
 import opengl, vmath
 
 var
@@ -20,9 +20,9 @@ proc setup*() =
     program.link()
 
     # atlas
-    atlas.setup(4096)
+    atlases.setup(4096)
 
-    var atlasImage = atlas.getImage()
+    var atlasImage = atlases.getImage()
 
     atlasTexture = createTexture(GL_TEXTURE_2D)
     atlasTexture.wrap2(GL_CLAMP_TO_EDGE)

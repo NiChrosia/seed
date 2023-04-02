@@ -1,5 +1,5 @@
 import tables
-import ../api/gl/[cameras], ./state
+import ../api/rendering/[cameras], ./state
 import staticglfw, vmath
 
 {.push cdecl.}

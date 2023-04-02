@@ -21,7 +21,7 @@ proc update*[T](seq: var BufferBackedSeq[T]) =
     if not seq.dirty:
         return
 
-    glNamedBufferSubData(seq.buffer, 0, seq.data.len * sizeof(T), addr seq.data[0])
+    glNamedBufferSubData(seq.buffer, 0, seq.data.len * sizeof(T), unsafeAddr seq.data[0])
     seq.dirty = false
 
 proc add*[T](seq: var BufferBackedSeq[T], elements: openArray[T]) =

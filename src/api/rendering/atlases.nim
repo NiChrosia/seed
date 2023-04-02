@@ -1,5 +1,5 @@
 import os, strutils, tables, strformat
-import ../atlases, ../../assets
+import vatlases, ../../assets
 import nimPNG, vmath
 
 type

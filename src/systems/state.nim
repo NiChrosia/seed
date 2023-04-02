@@ -1,5 +1,5 @@
 import tables
-import ../api/gl/cameras
+import ../api/rendering/cameras
 import staticglfw, vmath
 
 var

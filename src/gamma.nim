@@ -6,6 +6,8 @@ windows.initialize("Gamma", ivec2(800, 600), (4, 3, true))
 drawing.setup()
 controls.setCallbacks()
 
+square("white", vec2(1f))
+
 # main loop
 while windowShouldClose(window) == 0:
     glClearColor(0f, 0f, 0f, 1f)
