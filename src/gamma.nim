@@ -6,7 +6,7 @@ windows.initialize("Gamma", ivec2(800, 600), (4, 3, true))
 renderer.setup()
 controls.setCallbacks()
 
-renderer.quadBatch.square("white", vec2(1f))
+renderer.quadBatch.square("white", vec2(1f), mat4())
 
 # main loop
 while windowShouldClose(window) == 0:
