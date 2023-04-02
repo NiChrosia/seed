@@ -64,22 +64,22 @@ proc draw*(program: GLuint) =
 
 # user-facing API
 proc square*(texture: string, point: Vec2, model: Mat4 = mat4()) =
-    var indices = newSeq[Vertex]()
+    once:
+        var indices = newSeq[Vertex]()
 
-    for xSign in [-1f, 1f]:
-        for ySign in [-1f, 1f]:
-            let newPoint = vec3(point.x * xSign, point.y * ySign, -1f)
-            let normTexCoords = (vec2(xSign, ySign) + 1f) / 2f
+        for xSign in [-1f, 1f]:
+            for ySign in [-1f, 1f]:
+                let newPoint = vec3(point.x * xSign, point.y * ySign, -1f)
+                let normTexCoords = (vec2(xSign, ySign) + 1f) / 2f
 
-            let texCoords = atlases.coords(texture, normTexCoords)
+                let texCoords = atlases.coords(texture, normTexCoords)
 
-            indices.add(Vertex(pos: newPoint, texCoords: texCoords))
+                indices.add(Vertex(pos: newPoint, texCoords: texCoords))
 
-    for i in countdown(2, 0):
-        vertices.add(sizeof(Vertex), addr indices[i])
+        for i in countdown(2, 0):
+            vertices.add(sizeof(Vertex), addr indices[i])
 
-    for i in 1 .. 3:
-        vertices.add(sizeof(Vertex), addr indices[i])
+        for i in 1 .. 3:
+            vertices.add(sizeof(Vertex), addr indices[i])
 
-    let property = Property(model: model)
-    properties.add(sizeof(Property), unsafeAddr property)
+    properties.add(sizeof(Mat4), unsafeAddr model)
