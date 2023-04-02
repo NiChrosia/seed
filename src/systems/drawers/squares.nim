@@ -7,9 +7,6 @@ type
         texCoords: Vec2
         modelIndex: GLint
 
-    Property = object
-        model: Mat4
-
 var
     vao: GLuint
     vbo, pbo: GLuint
