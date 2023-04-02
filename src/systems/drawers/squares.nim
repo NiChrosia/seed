@@ -1,4 +1,4 @@
-import ../../api/gl/[buffers, ssbos], ../../api/rendering/atlases, ../state
+import ../../api/gl/[buffers, ssbos], ../../api/rendering/atlases
 import opengl, vmath
 
 type
@@ -20,8 +20,9 @@ var
     count = 0
 
     modelBuffer: ptr Ssbo
+    atlas: ptr Atlas
 
-proc setup*(theModelBuffer: ptr Ssbo) =
+proc setup*(theAtlas: ptr Atlas, theModelBuffer: ptr Ssbo) =
     # buffers
     vertices = Buffer.init(GL_DYNAMIC_DRAW)
     properties = Buffer.init(GL_DYNAMIC_DRAW)
@@ -30,6 +31,7 @@ proc setup*(theModelBuffer: ptr Ssbo) =
     pbo = properties.handle
 
     modelBuffer = theModelBuffer
+    atlas = theAtlas
 
     # vao
     glCreateVertexArrays(1, addr vao)
@@ -83,7 +85,7 @@ proc square*(texture: string, point: Vec2, model: Mat4 = mat4()) =
             let newPoint = vec3(point.x * xSign, point.y * ySign, -1f)
             let normTexCoords = (vec2(xSign, ySign) + 1f) / 2f
 
-            let texCoords = atlas.coords(texture, normTexCoords)
+            let texCoords = atlas[].coords(texture, normTexCoords)
 
             indices.add(Vertex(modelIndex: index, pos: newPoint, texCoords: texCoords))
 

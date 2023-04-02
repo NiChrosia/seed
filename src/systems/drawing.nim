@@ -44,7 +44,7 @@ proc setup*() =
     modelBuffer = Ssbo.init(GL_DYNAMIC_DRAW, 0)
 
     # drawers
-    squares.setup(addr modelBuffer)
+    squares.setup(addr atlas, addr modelBuffer)
 
     modelBuffer.attach(program, "Models")
 
