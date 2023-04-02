@@ -1,12 +1,12 @@
-import ./systems/[state, windows, controls, drawing], ./systems/drawers/squares
+import ./systems/[state, windows, controls, renderer], ./systems/drawers/squares
 import staticglfw as glfw, opengl, vmath
 
 windows.initialize("Gamma", ivec2(800, 600), (4, 3, true))
 
-drawing.setup()
+renderer.setup()
 controls.setCallbacks()
 
-drawing.quadBatch.square("white", vec2(1f))
+renderer.quadBatch.square("white", vec2(1f))
 
 # main loop
 while windowShouldClose(window) == 0:
@@ -14,7 +14,7 @@ while windowShouldClose(window) == 0:
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
     controls.update()
-    drawing.draw()
+    renderer.draw()
 
     window.swapBuffers()
     pollEvents()
