@@ -51,7 +51,7 @@ proc setup*(dimensions: int32) =
         textures[name] = texture
 
 proc coords*(name: string, normalized: Vec2): Vec2 =
-    ## converts texture-specific normalized coordinates interop
+    ## converts texture-specific normalized coordinates into
     ## normalized atlas coordinates
 
     if not textures.hasKey(name):
