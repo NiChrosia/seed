@@ -14,19 +14,16 @@ var
     vbo, pbo: GLuint
 
 var
-    vertices: BufferBackedSeq[Vertex]
-    properties: BufferBackedSeq[Property]
+    vertices: Buffer
+    properties: Buffer
 
 proc setup*() =
     # buffers
-    glCreateBuffers(1, addr vbo)
-    glCreateBuffers(1, addr pbo)
+    vertices = Buffer.init(GL_DYNAMIC_DRAW)
+    properties = Buffer.init(GL_DYNAMIC_DRAW)
 
-    glNamedBufferStorage(vbo, 1024 * sizeof(Vertex), nil, GL_DYNAMIC_STORAGE_BIT)
-    glNamedBufferStorage(pbo, 1024 * sizeof(Property), nil, GL_DYNAMIC_STORAGE_BIT)
-
-    vertices = BufferBackedSeq.init[:Vertex](vbo, 1024)
-    properties = BufferBackedSeq.init[:Property](pbo, 1024)
+    vbo = vertices.handle
+    pbo = properties.handle
 
     # vao
     glCreateVertexArrays(1, addr vao)
@@ -57,17 +54,13 @@ proc setup*() =
         glVertexArrayBindingDivisor(vao, 1, 1)
 
 proc draw*(program: GLuint) =
-    # data
-    vertices.update[:Vertex]()
-    properties.update[:Property]()
-
     # draw
     glBindVertexArray(vao)
     glUseProgram(program)
 
     glDisable(GL_CULL_FACE)
 
-    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, GLsizei(properties.len[:Property]()))
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, GLsizei(properties.used div sizeof(Property)))
 
 # user-facing API
 proc square*(texture: string, point: Vec2, model: Mat4 = mat4()) =
@@ -83,9 +76,10 @@ proc square*(texture: string, point: Vec2, model: Mat4 = mat4()) =
             indices.add(Vertex(pos: newPoint, texCoords: texCoords))
 
     for i in countdown(2, 0):
-        vertices.add[:Vertex](indices[i])
+        vertices.add(sizeof(Vertex), addr indices[i])
 
     for i in 1 .. 3:
-        vertices.add[:Vertex](indices[i])
+        vertices.add(sizeof(Vertex), addr indices[i])
 
-    properties.add[:Property](Property(model: model))
+    let property = Property(model: model)
+    properties.add(sizeof(Property), unsafeAddr property)

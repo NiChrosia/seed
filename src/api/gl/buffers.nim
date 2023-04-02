@@ -1,46 +1,46 @@
 import opengl
 
 type
-    BufferBackedSeq*[T] = object
-        capacity: int
-        buffer: GLuint
+    Buffer* = object
+        handle*: uint32
+        used*, capacity*: int32
+        usage*: GLenum
 
-        data: seq[T]
-        dirty: bool
+proc init*(_: typedesc[Buffer], usage: GLenum): Buffer =
+    glGenBuffers(1, addr result.handle)
 
-    OutOfBoundsError = object of ValueError
+    result.usage = usage
+    result.capacity = 1024
 
-proc init*[T](_: typedesc[BufferBackedSeq], buffer: GLuint, capacity: int = 1024): BufferBackedSeq[T] =
-    result.capacity = capacity
-    result.buffer = buffer
+    glBindBuffer(GL_COPY_READ_BUFFER, result.handle)
+    glBufferData(GL_COPY_READ_BUFFER, result.capacity, nil, usage)
 
-    result.data = newSeqOfCap[T](capacity)
-    result.dirty = false
+proc resize*(b: var Buffer, factor: float32 = 2f) =
+    ## warning: this does use the gl copy read & write buffers
+    ## so make sure they're empty
 
-proc update*[T](seq: var BufferBackedSeq[T]) =
-    if not seq.dirty:
-        return
+    let new = int32(float32(b.capacity) * factor)
 
-    glNamedBufferSubData(seq.buffer, 0, seq.data.len * sizeof(T), unsafeAddr seq.data[0])
-    seq.dirty = false
+    glBindBuffer(GL_COPY_READ_BUFFER, b.handle)
+    let mappedData = glMapBuffer(GL_COPY_READ_BUFFER, GL_READ_ONLY)
 
-proc add*[T](seq: var BufferBackedSeq[T], elements: openArray[T]) =
-    # in what scenario would someone even do this, though?
-    if elements.len == 0:
-        return
+    let data = alloc(b.used)
+    copyMem(data, mappedData, b.used)
 
-    if seq.len + elements.len > seq.capacity:
-        raise OutOfBoundsError.newException("Not enough space for elements in buffer-backed seq!")
+    assert glUnmapBuffer(GL_COPY_READ_BUFFER), "unmapping failed!"
 
-    copyMem(addr seq.data[seq.data.len], unsafeAddr elements[0], elements.len * sizeof(T))
-    seq.dirty = true
+    glBufferData(GL_COPY_READ_BUFFER, new, data, b.usage)
 
-proc add*[T](seq: var BufferBackedSeq[T], element: T) =
-    if seq.len + 1 > seq.capacity:
-        raise OutOfBoundsError.newException("No more space left in buffer-backed seq!")
+    b.capacity = new
 
-    seq.data.add(element)
-    seq.dirty = true
+proc add*(b: var Buffer, size: int32, data: pointer) =
+    while b.used + size > b.capacity:
+        b.resize()
 
-proc len*[T](seq: BufferBackedSeq[T]): int =
-    return seq.data.len
+    glBindBuffer(GL_COPY_READ_BUFFER, b.handle)
+    glBufferSubData(GL_COPY_READ_BUFFER, b.used, size, data)
+
+    b.used += size
+
+proc add*[I](b: var Buffer, size: I, data: pointer) =
+    b.add(int32(size), data)
