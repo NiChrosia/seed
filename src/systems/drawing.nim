@@ -1,9 +1,11 @@
-import ../api/gl/[textures, shaders], ../api/rendering/[atlases, cameras], "."/[state], drawers/[squares], ../assets
+import ../api/gl/[textures, shaders, ssbos], ../api/rendering/[atlases, cameras], "."/[state], drawers/[squares], ../assets
 import opengl, vmath
 
 var
     program: GLuint
     atlasTexture: GLuint
+
+    modelBuffer: Ssbo
 
 proc setup*() =
     # shaders
@@ -11,8 +13,8 @@ proc setup*() =
     let fs = glCreateShader(GL_FRAGMENT_SHADER)
     program = glCreateProgram()
 
-    vs.compile(getAssetToStr("assets/shaders/main.vs"))
-    fs.compile(getAssetToStr("assets/shaders/main.fs"))
+    vs.compile(getAsset("assets/shaders/main.vs"))
+    fs.compile(getAsset("assets/shaders/main.fs"))
 
     glAttachShader(program, vs)
     glAttachShader(program, fs)
@@ -38,8 +40,13 @@ proc setup*() =
     glBindTextureUnit(0, atlasTexture)
     glProgramUniformMatrix4fv(program, proj, 1, false, unsafeAddr projMatrix[0, 0])
 
+    # ubo
+    modelBuffer = Ssbo.init(GL_DYNAMIC_DRAW, 0)
+
     # drawers
-    squares.setup()
+    squares.setup(addr modelBuffer)
+
+    modelBuffer.attach(program, "Models")
 
 proc draw*() =
     # uniforms

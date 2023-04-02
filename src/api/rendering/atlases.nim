@@ -26,7 +26,7 @@ proc setup*(_: typedesc[Atlas], dimensions: int32): Atlas =
         if dir != "assets/sprites" or ext.toLower() != ".png":
             continue
 
-        var textureImage = decodePNG32(getAssetToStr(path))
+        var textureImage = decodePNG32(getAsset(path))
 
         var texture = result.vatlas.newTexture()
         result.vatlas.allocate(texture, textureImage.width, textureImage.height)
