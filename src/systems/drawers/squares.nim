@@ -1,4 +1,4 @@
-import ../../api/gl/[buffers], ../../api/rendering/atlases
+import ../../api/gl/[buffers], ../../api/rendering/atlases, ../state
 import opengl, vmath
 
 type
@@ -72,7 +72,7 @@ proc square*(texture: string, point: Vec2, model: Mat4 = mat4()) =
                 let newPoint = vec3(point.x * xSign, point.y * ySign, -1f)
                 let normTexCoords = (vec2(xSign, ySign) + 1f) / 2f
 
-                let texCoords = atlases.coords(texture, normTexCoords)
+                let texCoords = atlas.coords(texture, normTexCoords)
 
                 indices.add(Vertex(pos: newPoint, texCoords: texCoords))
 

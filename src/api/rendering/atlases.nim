@@ -10,14 +10,15 @@ type
         width*, height*: int32
         data*: seq[Pixel]
 
-var atlas: VirtualAtlas
-var textures: Table[string, VirtualTexture]
+    Atlas* = object
+        vatlas*: VirtualAtlas
+        textures*: Table[string, VirtualTexture]
 
-var image: Image
+        image*: Image
 
-proc setup*(dimensions: int32) =
-    atlas = VirtualAtlas.new(dimensions, 0)
-    image = Image(width: dimensions, height: dimensions, data: newSeq[Pixel](dimensions * dimensions))
+proc setup*(_: typedesc[Atlas], dimensions: int32): Atlas =
+    result.vatlas = VirtualAtlas.new(dimensions, 0)
+    result.image = Image(width: dimensions, height: dimensions, data: newSeq[Pixel](dimensions * dimensions))
 
     for path in assets.assets.keys:
         let (dir, name, ext) = splitFile(path)
@@ -27,13 +28,13 @@ proc setup*(dimensions: int32) =
 
         var textureImage = decodePNG32(getAssetToStr(path))
 
-        var texture = atlas.newTexture()
-        atlas.allocate(texture, textureImage.width, textureImage.height)
+        var texture = result.vatlas.newTexture()
+        result.vatlas.allocate(texture, textureImage.width, textureImage.height)
 
-        var coordRect = atlas.coords(texture)
+        var coordRect = result.vatlas.coords(texture)
 
         for y in coordRect.bottom ..< coordRect.top:
-            copyMem(addr image.data[y * dimensions + coordRect.left], addr textureImage.data[(y - coordRect.bottom) * textureImage.height], coordRect.width * 4)
+            copyMem(addr result.image.data[y * dimensions + coordRect.left], addr textureImage.data[(y - coordRect.bottom) * textureImage.height], coordRect.width * 4)
 
             # for x in coordRect.left ..< coordRect.right:
             #     let textureX = x - coordRect.left
@@ -48,18 +49,18 @@ proc setup*(dimensions: int32) =
 
             #     image.data[y * dimensions + x] = Pixel(r: r, g: g, b: b, a: a)
 
-        textures[name] = texture
+        result.textures[name] = texture
 
-proc coords*(name: string, normalized: Vec2): Vec2 =
+proc coords*(atlas: Atlas, name: string, normalized: Vec2): Vec2 =
     ## converts texture-specific normalized coordinates into
     ## normalized atlas coordinates
 
-    if not textures.hasKey(name):
+    if not atlas.textures.hasKey(name):
         raise Exception.newException(fmt"Texture '{name}' does not exist!")
 
     # todo: make the atlas algorithm outputs be more conveniently usable.
     # ie, make them use stuff like vec2 and have proper rect types
-    let coordRect = atlas.coords(textures[name])
+    let coordRect = atlas.vatlas.coords(atlas.textures[name])
 
     var pos = vec2(ivec2(coordRect.left.int32, coordRect.bottom.int32))
     var size = vec2(ivec2(coordRect.right.int32 - coordRect.left.int32, coordRect.top.int32 - coordRect.bottom.int32))
@@ -67,10 +68,7 @@ proc coords*(name: string, normalized: Vec2): Vec2 =
     pos += 0.5f
     size -= 1f
 
-    var normPos = pos / float(atlas.dimensions)
-    var normSize = size / float(atlas.dimensions)
+    var normPos = pos / float(atlas.vatlas.dimensions)
+    var normSize = size / float(atlas.vatlas.dimensions)
 
     return normPos + normSize * normalized
-
-proc getImage*(): Image =
-    return image

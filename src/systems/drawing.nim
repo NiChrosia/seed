@@ -20,9 +20,8 @@ proc setup*() =
     program.link()
 
     # atlas
-    atlases.setup(4096)
-
-    var atlasImage = atlases.getImage()
+    atlas = Atlas.setup(4096)
+    var atlasImage = atlas.image
 
     atlasTexture = createTexture(GL_TEXTURE_2D)
     atlasTexture.wrap2(GL_CLAMP_TO_EDGE)

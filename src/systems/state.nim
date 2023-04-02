@@ -1,5 +1,5 @@
 import tables
-import ../api/rendering/cameras
+import ../api/rendering/[cameras, atlases]
 import staticglfw, vmath
 
 var
@@ -10,3 +10,5 @@ var
 
     keysDown*: Table[int, bool]
     mousePos*: Vec2
+
+    atlas*: Atlas
