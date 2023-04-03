@@ -80,6 +80,13 @@ proc quad*(batch: var PolyBatch, positions: openArray[Vec3], texture: string, qu
     batch.vertices.add(sizeof(Vertex) * mesh.len, unsafeAddr mesh[0])
     batch.triangles += 2
 
+let fromOriginClockwiseQuadTexCoords* = [
+    vec2(0f, 0f),
+    vec2(0f, 1f),
+    vec2(1f, 1f),
+    vec2(0f, 1f)
+]
+
 proc rect*(batch: var PolyBatch, texture: string, a, b: Vec2, model: Mat4) =
     let positions = [
         vec3(a.x, a.y, 0f),
@@ -88,14 +95,7 @@ proc rect*(batch: var PolyBatch, texture: string, a, b: Vec2, model: Mat4) =
         vec3(b.x, a.y, 0f),
     ]
 
-    let texCoords {.global.} = [
-        vec2(0f, 0f),
-        vec2(0f, 1f),
-        vec2(1f, 1f),
-        vec2(0f, 1f)
-    ]
-
-    batch.quad(positions, texture, texCoords, model)
+    batch.quad(positions, texture, fromOriginClockwiseQuadTexCoords, model)
 
 proc square*(batch: var PolyBatch, texture: string, point: Vec2, model: Mat4) =
     let positions = [
@@ -105,11 +105,4 @@ proc square*(batch: var PolyBatch, texture: string, point: Vec2, model: Mat4) =
         vec3(point * vec2(+1f, -1f), 0f),
     ]
 
-    let quadTexCoords {.global.} = [
-        vec2(0f, 0f),
-        vec2(0f, 1f),
-        vec2(1f, 1f),
-        vec2(1f, 0f),
-    ]
-
-    batch.quad(positions, texture, quadTexCoords, model)
+    batch.quad(positions, texture, fromOriginClockwiseQuadTexCoords, model)
