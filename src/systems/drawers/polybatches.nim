@@ -15,6 +15,7 @@ type
         position:   Vec3
         texCoords:  Vec2
         modelIndex: GLint
+        tint: Vec4
 
 proc init*(_: typedesc[PolyBatch], theAtlas: ptr Atlas, theModelBuffer: ptr Ssbo): PolyBatch =
     # buffers
@@ -29,17 +30,16 @@ proc init*(_: typedesc[PolyBatch], theAtlas: ptr Atlas, theModelBuffer: ptr Ssbo
     block vertex:
         glVertexArrayVertexBuffer(result.vao, 0, result.vertices.handle, 0, GLsizei(sizeof(Vertex)))
 
-        glEnableVertexArrayAttrib(result.vao, 0)
-        glEnableVertexArrayAttrib(result.vao, 1)
-        glEnableVertexArrayAttrib(result.vao, 2)
+        for i in 0 .. 3:
+            glEnableVertexArrayAttrib(result.vao, GLuint(i))
 
         glVertexArrayAttribFormat(result.vao, 0, 3, cGL_FLOAT, false, GLuint(Vertex.offsetOf(position)))
         glVertexArrayAttribFormat(result.vao, 1, 2, cGL_FLOAT, false, GLuint(Vertex.offsetOf(texCoords)))
         glVertexArrayAttribIFormat(result.vao, 2, 1, cGL_INT, GLuint(Vertex.offsetOf(modelIndex)))
+        glVertexArrayAttribFormat(result.vao, 3, 4, cGL_FLOAT, false, GLuint(Vertex.offsetOf(tint)))
 
-        glVertexArrayAttribBinding(result.vao, 0, 0)
-        glVertexArrayAttribBinding(result.vao, 1, 0)
-        glVertexArrayAttribBinding(result.vao, 2, 0)
+        for i in 0 .. 3:
+            glVertexArrayAttribBinding(result.vao, GLuint(i), 0)
 
 proc draw*(batch: PolyBatch) =
     ## program with matching bindings should be bound
@@ -57,14 +57,15 @@ template indexModel(batch: var PolyBatch, model: Mat4): GLint =
 template transformTcs(batch: PolyBatch, texture: string, local: Vec2): Vec2 =
     batch.atlas[].coords(texture, local)
 
-proc transformVertices(batch: var PolyBatch, poss: openArray[Vec3], texture: string, tcs: openArray[Vec2], model: Mat4): seq[Vertex] =
+proc transformVertices(batch: var PolyBatch, poss: openArray[Vec3], texture: string, tcs: openArray[Vec2], tint: Vec4, model: Mat4): seq[Vertex] =
     for i in 0 ..< poss.len:
         let tc = batch.transformTcs(texture, tcs[i])
         let mi = batch.indexModel(model)
 
-        result.add(Vertex(position: poss[i], texCoords: tc, modelIndex: mi))
+        result.add(Vertex(position: poss[i], texCoords: tc, modelIndex: mi, tint: tint))
 
 # user-facing API
+# - quads
 let fromOriginClockwiseQuadTexCoords* = [
     vec2(0f, 0f),
     vec2(0f, 1f),
@@ -72,13 +73,13 @@ let fromOriginClockwiseQuadTexCoords* = [
     vec2(0f, 1f)
 ]
 
-proc quad*(batch: var PolyBatch, positions: openArray[Vec3], texture: string, model: Mat4) =
+proc quad*(batch: var PolyBatch, positions: openArray[Vec3], texture: string, tint: Vec4, model: Mat4) =
     ## positions are expected to be in the positioning
     ## 1 2
     ## 0 3
     ## due to this expectation, the texture coordinates are implicit
 
-    var vertices = batch.transformVertices(positions, texture, fromOriginClockwiseQuadTexCoords, model)
+    var vertices = batch.transformVertices(positions, texture, fromOriginClockwiseQuadTexCoords, tint, model)
     var mesh = newSeq[Vertex]()
 
     # counterclockwise
@@ -88,7 +89,7 @@ proc quad*(batch: var PolyBatch, positions: openArray[Vec3], texture: string, mo
     batch.vertices.add(sizeof(Vertex) * mesh.len, unsafeAddr mesh[0])
     batch.triangles += 2
 
-proc rect*(batch: var PolyBatch, texture: string, a, b: Vec2, model: Mat4) =
+proc rect*(batch: var PolyBatch, texture: string, tint: Vec4, a, b: Vec2, model: Mat4) =
     let positions = [
         vec3(a.x, a.y, 0f),
         vec3(a.x, b.y, 0f),
@@ -96,9 +97,9 @@ proc rect*(batch: var PolyBatch, texture: string, a, b: Vec2, model: Mat4) =
         vec3(b.x, a.y, 0f),
     ]
 
-    batch.quad(positions, texture, model)
+    batch.quad(positions, texture, tint, model)
 
-proc square*(batch: var PolyBatch, texture: string, point: Vec2, model: Mat4) =
+proc square*(batch: var PolyBatch, texture: string, tint: Vec4, point: Vec2, model: Mat4) =
     let positions = [
         vec3(point * vec2(-1f, -1f), 0f),
         vec3(point * vec2(-1f, +1f), 0f),
@@ -106,4 +107,4 @@ proc square*(batch: var PolyBatch, texture: string, point: Vec2, model: Mat4) =
         vec3(point * vec2(+1f, -1f), 0f),
     ]
 
-    batch.quad(positions, texture, model)
+    batch.quad(positions, texture, tint, model)
