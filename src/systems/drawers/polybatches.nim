@@ -66,30 +66,50 @@ proc transformVertices(batch: var PolyBatch, poss: openArray[Vec3], texture: str
 
 # user-facing API
 proc quad*(batch: var PolyBatch, positions: openArray[Vec3], texture: string, quadTexCoords: openArray[Vec2], model: Mat4) =
+    ## positions are expected to be in the positioning
+    ## 1 2
+    ## 0 3
+
     var vertices = batch.transformVertices(positions, texture, quadTexCoords, model)
     var mesh = newSeq[Vertex]()
 
-    for i in [0, 1, 2, 2, 3, 0]:
+    # counterclockwise
+    for i in [3, 2, 1, 1, 0, 3]:
         mesh.add(vertices[i])
 
     batch.vertices.add(sizeof(Vertex) * mesh.len, unsafeAddr mesh[0])
-
     batch.triangles += 2
 
 proc rect*(batch: var PolyBatch, texture: string, a, b: Vec2, model: Mat4) =
-    let positions = [vec3(a, 0f), vec3(a.x, b.y, 0f), vec3(b, 0f), vec3(b.x, a.y, 0f)]
-    var texCoords {.global.} = [vec2(0f, 0f), vec2(0f, 1f), vec2(1f, 1f), vec2(0f, 1f)]
+    let positions = [
+        vec3(a.x, a.y, 0f),
+        vec3(a.x, b.y, 0f),
+        vec3(b.x, b.y, 0f),
+        vec3(b.x, a.y, 0f),
+    ]
+
+    let texCoords {.global.} = [
+        vec2(0f, 0f),
+        vec2(0f, 1f),
+        vec2(1f, 1f),
+        vec2(0f, 1f)
+    ]
 
     batch.quad(positions, texture, texCoords, model)
 
 proc square*(batch: var PolyBatch, texture: string, point: Vec2, model: Mat4) =
-    var positions = newSeq[Vec3]()
-    var quadTexCoords {.global.} = [vec2(0f, 0f), vec2(0f, 1f), vec2(1f, 1f), vec2(0f, 1f)]
+    let positions = [
+        vec3(point * vec2(-1f, -1f), 0f),
+        vec3(point * vec2(-1f, +1f), 0f),
+        vec3(point * vec2(+1f, +1f), 0f),
+        vec3(point * vec2(+1f, -1f), 0f),
+    ]
 
-    for i in [0, 1, 3, 2]:
-        let xSign = float((i div 2) * 2 - 1)
-        let ySign = float((i mod 2) * 2 - 1)
-
-        positions.add(vec3(point.x * xSign, point.y * ySign, 0f))
+    let quadTexCoords {.global.} = [
+        vec2(0f, 0f),
+        vec2(0f, 1f),
+        vec2(1f, 1f),
+        vec2(1f, 0f),
+    ]
 
     batch.quad(positions, texture, quadTexCoords, model)
