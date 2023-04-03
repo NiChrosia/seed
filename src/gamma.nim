@@ -8,6 +8,7 @@ controls.setCallbacks()
 
 renderer.polyBatch.square("white", vec2(1f), mat4())
 renderer.polyBatch.quad([vec3(-1f, -1f, 0f), vec3(-1f, 0f, 0f), vec3(1f, 1f, 0f), vec3(1f, 0f, 0f)], "white", [vec2(0f, 0f), vec2(0f, 1f), vec2(1f, 1f), vec2(1f, 0f)], translate(vec3(-5f, 0f, -1f)))
+renderer.polyBatch.rect("white", vec2(0f), vec2(1f), translate(vec3(0f, 5f, 0f)))
 
 # main loop
 while windowShouldClose(window) == 0:

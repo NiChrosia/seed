@@ -65,28 +65,31 @@ proc transformVertices(batch: var PolyBatch, poss: openArray[Vec3], texture: str
         result.add(Vertex(position: poss[i], texCoords: tc, modelIndex: mi))
 
 # user-facing API
-proc quad*(batch: var PolyBatch, positions: array[4, Vec3], texture: string, quadTexCoords: array[4, Vec2], model: Mat4) =
+proc quad*(batch: var PolyBatch, positions: openArray[Vec3], texture: string, quadTexCoords: openArray[Vec2], model: Mat4) =
     var vertices = batch.transformVertices(positions, texture, quadTexCoords, model)
+    var mesh = newSeq[Vertex]()
 
-    # 0, 1, 2; 2, 3; 0
-    batch.vertices.add(sizeof(Vertex) * 3, unsafeAddr vertices[0])
-    batch.vertices.add(sizeof(Vertex) * 2, unsafeAddr vertices[2])
-    batch.vertices.add(sizeof(Vertex) * 1, unsafeAddr vertices[0])
+    for i in [0, 1, 2, 2, 3, 0]:
+        mesh.add(vertices[i])
+
+    batch.vertices.add(sizeof(Vertex) * mesh.len, unsafeAddr mesh[0])
 
     batch.triangles += 2
 
-proc square*(batch: var PolyBatch, texture: string, point: Vec2, model: Mat4) =
-    var positions: array[4, Vec3]
-    var quadTexCoords: array[4, Vec2]
+proc rect*(batch: var PolyBatch, texture: string, a, b: Vec2, model: Mat4) =
+    let positions = [vec3(a, 0f), vec3(a.x, b.y, 0f), vec3(b, 0f), vec3(b.x, a.y, 0f)]
+    var texCoords {.global.} = [vec2(0f, 0f), vec2(0f, 1f), vec2(1f, 1f), vec2(0f, 1f)]
 
-    for i in 0 .. 3:
+    batch.quad(positions, texture, texCoords, model)
+
+proc square*(batch: var PolyBatch, texture: string, point: Vec2, model: Mat4) =
+    var positions = newSeq[Vec3]()
+    var quadTexCoords {.global.} = [vec2(0f, 0f), vec2(0f, 1f), vec2(1f, 1f), vec2(0f, 1f)]
+
+    for i in [0, 1, 3, 2]:
         let xSign = float((i div 2) * 2 - 1)
         let ySign = float((i mod 2) * 2 - 1)
 
-        let newPoint = vec3(point.x * xSign, point.y * ySign, -1f)
-        let texCoords = (vec2(xSign, ySign) + 1f) / 2f
-
-        positions[i] = newPoint
-        quadTexCoords[i] = texCoords
+        positions.add(vec3(point.x * xSign, point.y * ySign, 0f))
 
     batch.quad(positions, texture, quadTexCoords, model)
