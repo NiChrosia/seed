@@ -65,12 +65,20 @@ proc transformVertices(batch: var PolyBatch, poss: openArray[Vec3], texture: str
         result.add(Vertex(position: poss[i], texCoords: tc, modelIndex: mi))
 
 # user-facing API
-proc quad*(batch: var PolyBatch, positions: openArray[Vec3], texture: string, quadTexCoords: openArray[Vec2], model: Mat4) =
+let fromOriginClockwiseQuadTexCoords* = [
+    vec2(0f, 0f),
+    vec2(0f, 1f),
+    vec2(1f, 1f),
+    vec2(0f, 1f)
+]
+
+proc quad*(batch: var PolyBatch, positions: openArray[Vec3], texture: string, model: Mat4) =
     ## positions are expected to be in the positioning
     ## 1 2
     ## 0 3
+    ## due to this expectation, the texture coordinates are implicit
 
-    var vertices = batch.transformVertices(positions, texture, quadTexCoords, model)
+    var vertices = batch.transformVertices(positions, texture, fromOriginClockwiseQuadTexCoords, model)
     var mesh = newSeq[Vertex]()
 
     # counterclockwise
@@ -80,13 +88,6 @@ proc quad*(batch: var PolyBatch, positions: openArray[Vec3], texture: string, qu
     batch.vertices.add(sizeof(Vertex) * mesh.len, unsafeAddr mesh[0])
     batch.triangles += 2
 
-let fromOriginClockwiseQuadTexCoords* = [
-    vec2(0f, 0f),
-    vec2(0f, 1f),
-    vec2(1f, 1f),
-    vec2(0f, 1f)
-]
-
 proc rect*(batch: var PolyBatch, texture: string, a, b: Vec2, model: Mat4) =
     let positions = [
         vec3(a.x, a.y, 0f),
@@ -95,7 +96,7 @@ proc rect*(batch: var PolyBatch, texture: string, a, b: Vec2, model: Mat4) =
         vec3(b.x, a.y, 0f),
     ]
 
-    batch.quad(positions, texture, fromOriginClockwiseQuadTexCoords, model)
+    batch.quad(positions, texture, model)
 
 proc square*(batch: var PolyBatch, texture: string, point: Vec2, model: Mat4) =
     let positions = [
@@ -105,4 +106,4 @@ proc square*(batch: var PolyBatch, texture: string, point: Vec2, model: Mat4) =
         vec3(point * vec2(+1f, -1f), 0f),
     ]
 
-    batch.quad(positions, texture, fromOriginClockwiseQuadTexCoords, model)
+    batch.quad(positions, texture, model)
