@@ -6,9 +6,8 @@ windows.initialize("Gamma", ivec2(800, 600), (4, 3, true))
 renderer.setup()
 controls.setCallbacks()
 
-renderer.polyBatch.quad([vec3(-1f, -1f, 0f), vec3(-1f, 0f, 0f), vec3(1f, 1f, 0f), vec3(1f, 0f, 0f)], "white", vec4(0f, 0f, 0f, 0f), translate(vec3(-5f, 0f, -1f)))
 renderer.polyBatch.rect("white", vec4(1f, 0f, 0f, 0.5f), vec2(0f), vec2(1f), translate(vec3(0f, 5f, 0f)))
-renderer.polyBatch.square("white", vec4(0f, 0f, 0f, 0f), vec2(1f), mat4())
+renderer.polyBatch.circle(vec4(0f, 0.5f, 0.5f, 1f), 5f, translate(vec3(10f, 10f, 0f)))
 
 # main loop
 while windowShouldClose(window) == 0:

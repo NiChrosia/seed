@@ -65,30 +65,6 @@ proc transformVertices(batch: var PolyBatch, poss: openArray[Vec3], texture: str
         result.add(Vertex(position: poss[i], texCoords: tc, modelIndex: mi, tint: tint))
 
 # user-facing API
-# - quads
-let fromOriginClockwiseQuadTexCoords* = [
-    vec2(0f, 0f),
-    vec2(0f, 1f),
-    vec2(1f, 1f),
-    vec2(0f, 1f)
-]
-
-proc quad*(batch: var PolyBatch, positions: openArray[Vec3], texture: string, tint: Vec4, model: Mat4) =
-    ## positions are expected to be in the positioning
-    ## 1 2
-    ## 0 3
-    ## due to this expectation, the texture coordinates are implicit
-
-    var vertices = batch.transformVertices(positions, texture, fromOriginClockwiseQuadTexCoords, tint, model)
-    var mesh = newSeq[Vertex]()
-
-    # counterclockwise
-    for i in [3, 2, 1, 1, 0, 3]:
-        mesh.add(vertices[i])
-
-    batch.vertices.add(sizeof(Vertex) * mesh.len, unsafeAddr mesh[0])
-    batch.triangles += 2
-
 proc rect*(batch: var PolyBatch, texture: string, tint: Vec4, a, b: Vec2, model: Mat4) =
     let positions = [
         vec3(a.x, a.y, 0f),
@@ -97,14 +73,53 @@ proc rect*(batch: var PolyBatch, texture: string, tint: Vec4, a, b: Vec2, model:
         vec3(b.x, a.y, 0f),
     ]
 
-    batch.quad(positions, texture, tint, model)
-
-proc square*(batch: var PolyBatch, texture: string, tint: Vec4, point: Vec2, model: Mat4) =
-    let positions = [
-        vec3(point * vec2(-1f, -1f), 0f),
-        vec3(point * vec2(-1f, +1f), 0f),
-        vec3(point * vec2(+1f, +1f), 0f),
-        vec3(point * vec2(+1f, -1f), 0f),
+    let tcs {.global.} = [
+        vec2(1f, -1f),
+        vec2(1f, 1f),
+        vec2(-1f, 1f),
+        vec2(-1f, -1f),
     ]
 
-    batch.quad(positions, texture, tint, model)
+    let vertices = batch.transformVertices(positions, texture, tcs, tint, model)
+    var mesh: seq[Vertex]
+
+    for i in [0, 1, 2, 2, 3, 0]:
+        mesh.add(vertices[i])
+
+    batch.vertices.add(sizeof(Vertex) * mesh.len, unsafeAddr mesh[0])
+    batch.triangles += 2
+
+proc circle*(batch: var PolyBatch, tint: Vec4, radius: float, model: Mat4, vertexCount: int = 20) =
+    # generate positions
+    var positions: seq[Vec3]
+    let fraction = TAU / float(vertexCount)
+
+    for i in 0 ..< vertexCount:
+        let radians = fraction * float(i)
+        positions.add(vec3(radius * cos(radians), radius * sin(radians), 0f))
+
+    # generate vertices
+    let tc = batch.transformTcs("white", vec2(0.5f))
+    let mi = batch.indexModel(model)
+
+    var vertices: seq[Vertex]
+
+    for i in 0 ..< positions.len:
+        vertices.add(Vertex(position: positions[i], texCoords: tc, modelIndex: mi, tint: tint))
+
+    vertices.add(Vertex(position: vec3(), texCoords: tc, modelIndex: mi, tint: tint))
+
+    # apply fan triangulation to vertices
+    var mesh: seq[Vertex]
+
+    for i in 0 ..< (vertices.len - 1):
+        mesh.add(vertices[vertices.high])
+        mesh.add(vertices[i])
+        mesh.add(vertices[(i + 1) mod (vertices.len - 1)])
+
+    # send to GPU
+    
+    # todo: do this kind of thing right before each
+    # frame, to absolutely minimize the latency
+    batch.vertices.add(sizeof(Vertex) * mesh.len, unsafeAddr mesh[0])
+    batch.triangles += GLint(vertexCount)
