@@ -89,12 +89,12 @@ proc rect*(batch: var PolyBatch, texture: string, tint: Vec4, a, b: Vec2, model:
     batch.vertices.add(sizeof(Vertex) * mesh.len, unsafeAddr mesh[0])
     batch.triangles += 2
 
-proc circle*(batch: var PolyBatch, tint: Vec4, radius: float, model: Mat4, vertexCount: int = 20) =
+proc poly*(batch: var PolyBatch, numVertices: int, tint: Vec4, radius: float, model: Mat4) =
     # generate positions
     var positions: seq[Vec3]
-    let fraction = TAU / float(vertexCount)
+    let fraction = TAU / float(numVertices)
 
-    for i in 0 ..< vertexCount:
+    for i in 0 ..< numVertices:
         let radians = fraction * float(i)
         positions.add(vec3(radius * cos(radians), radius * sin(radians), 0f))
 
@@ -122,4 +122,4 @@ proc circle*(batch: var PolyBatch, tint: Vec4, radius: float, model: Mat4, verte
     # todo: do this kind of thing right before each
     # frame, to absolutely minimize the latency
     batch.vertices.add(sizeof(Vertex) * mesh.len, unsafeAddr mesh[0])
-    batch.triangles += GLint(vertexCount)
+    batch.triangles += GLint(numVertices)
