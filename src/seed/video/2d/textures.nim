@@ -1,1 +1,0 @@
-## Provide a reasonably high-level method of drawing textures, utilizing a texture atlas.
