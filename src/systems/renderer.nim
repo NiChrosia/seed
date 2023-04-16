@@ -1,4 +1,4 @@
-import ../api/gl/[textures, shaders, ssbos], ../api/rendering/[atlases, cameras], "."/[state], drawers/[polybatches], ../assets
+import ../api/gl/[textures, shaders, ssbos, uniforms], ../api/rendering/[atlases, cameras], "."/[state], drawers/[polybatches], ../assets
 import opengl, vmath
 
 var
@@ -33,13 +33,12 @@ proc setup*() =
     glTextureStorage2D(atlasTexture, 1, GL_RGBA8, 4096, 4096)
     glTextureSubImage2D(atlasTexture, 0, 0, 0, 4096, 4096, GL_RGBA, GL_UNSIGNED_BYTE, addr atlasImage.data[0])
     # uniforms
-    let proj = glGetUniformLocation(program, "proj")
     let projMatrix = perspective(90f, float32(WINDOW_SIZE.x) / float32(WINDOW_SIZE.y), 0.1f, 1000f)
+    program.setMat4("proj", projMatrix)
 
     glUseProgram(program)
 
     glBindTextureUnit(0, atlasTexture)
-    glProgramUniformMatrix4fv(program, proj, 1, false, unsafeAddr projMatrix[0, 0])
 
     # ubo
     modelBuffer = Ssbo.init(GL_DYNAMIC_DRAW, 0)
@@ -50,13 +49,9 @@ proc setup*() =
     polyBatch = PolyBatch.init(addr atlas, addr modelBuffer)
 
 proc draw*() =
-    # uniforms
-    let view = glGetUniformLocation(program, "view")
-    let viewMatrix = camera.matrix
+    program.setMat4("view", camera.matrix)
 
     glUseProgram(program)
-
-    glUniformMatrix4fv(view, 1, false, unsafeAddr viewMatrix[0, 0])
 
     # drawers
     polyBatch.draw()
