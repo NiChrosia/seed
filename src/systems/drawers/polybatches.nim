@@ -1,4 +1,4 @@
-import ../../api/gl/[buffers, ssbos], ../../api/rendering/atlases
+import ../../api/gl/[buffers, ssbos, attrs], ../../api/rendering/atlases
 import opengl, vmath
 
 type
@@ -27,19 +27,14 @@ proc init*(_: typedesc[PolyBatch], theAtlas: ptr Atlas, theModelBuffer: ptr Ssbo
     # vao
     glCreateVertexArrays(1, addr result.vao)
 
-    block vertex:
-        glVertexArrayVertexBuffer(result.vao, 0, result.vertices.handle, 0, GLsizei(sizeof(Vertex)))
-
-        for i in 0 .. 3:
-            glEnableVertexArrayAttrib(result.vao, GLuint(i))
-
-        glVertexArrayAttribFormat(result.vao, 0, 3, cGL_FLOAT, false, GLuint(Vertex.offsetOf(position)))
-        glVertexArrayAttribFormat(result.vao, 1, 2, cGL_FLOAT, false, GLuint(Vertex.offsetOf(texCoords)))
-        glVertexArrayAttribIFormat(result.vao, 2, 1, cGL_INT, GLuint(Vertex.offsetOf(modelIndex)))
-        glVertexArrayAttribFormat(result.vao, 3, 4, cGL_FLOAT, false, GLuint(Vertex.offsetOf(tint)))
-
-        for i in 0 .. 3:
-            glVertexArrayAttribBinding(result.vao, GLuint(i), 0)
+    attributes(result.vao)
+        .buffer(sequential(result.vertices.handle)
+            .vec(float, 3)
+            .vec(float, 2)
+            .sca(int)
+            .vec(float, 4)
+            .build())
+        .build()
 
 proc draw*(batch: PolyBatch) =
     ## program with matching bindings should be bound
