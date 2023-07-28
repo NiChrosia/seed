@@ -1,14 +1,7 @@
-import tables
-import ../api/rendering/[cameras, atlases]
-import staticglfw, vmath
+import ./windows, ../api/rendering/[cameras, atlases]
 
 var
-    WINDOW_SIZE*: IVec2
-
-    window*: Window
-    camera* = Camera3.init()
-
-    keysDown*: Table[int, bool]
-    mousePos*: Vec2
+    twindow*: TrackingWindow
+    camera*: Camera3
 
     atlas*: Atlas

@@ -1,51 +1,68 @@
 import tables
-import ../api/rendering/[cameras], ./state
+import ../api/rendering/[cameras], "."/[state, windows]
 import staticglfw, vmath
 
-{.push cdecl.}
-proc onKey(window: Window, key, scancode, action, mods: cint) =
-    if action == PRESS:
-        keysDown[key] = true
-    elif action == RELEASE:
-        keysDown[key] = false
+type
+    Control* = ref object
+        cameraSpeed*: float
 
-proc onMouse(window: Window, x, y: cdouble) =
-    proc asVec(x, y: cdouble): Vec2 {.inline.} =
-        return vec2(float32(x), float32(y))
+        cameraFrozen*: bool
+        frozenMousePos*: Vec2
 
-    var initialPos {.global.} = vec2(0f, 0f)
-    var isFirst {.global.} = false
+proc init*(_: typedesc[Control], cameraSpeed: float): Control =
+    result = new(Control)
+    result.cameraSpeed = cameraSpeed
+    
+    var copy = result
 
-    if not isFirst:
-        initialPos = asVec(x, y)
-        isFirst = true
+    proc onClick(button, action, mods: cint) =
+        if button == MOUSE_BUTTON_LEFT and action == PRESS and copy.cameraFrozen:
+            twindow.cursorState = csDisabled
+            twindow.mousePos = copy.frozenMousePos
+            copy.cameraFrozen = false
+    
+    twindow.onClick = onClick
+    twindow.cursorState = csDisabled
 
-    mousePos = asVec(x, y) - initialPos
-{.pop.}
+proc updatePosition*(control: Control) =
+    template down(key: cint): bool =
+        twindow.keysDown[key]
 
-proc update*() =
-    proc `[]`(keys: Table[int, bool], key: int, default: bool): bool {.inline.} =
-        return keys.getOrDefault(key, default)
+    if down KEY_W:
+        camera.position += camera.front * control.cameraSpeed
+    if down KEY_S:
+        camera.position -= camera.front * control.cameraSpeed
+    if down KEY_D:
+        camera.position += cross(camera.front, camera.top) * control.cameraSpeed
+    if down KEY_A:
+        camera.position -= cross(camera.front, camera.top) * control.cameraSpeed
+    if down KEY_SPACE:
+        camera.position += camera.top * control.cameraSpeed
+    if down KEY_CAPS_LOCK:
+        camera.position -= camera.top * control.cameraSpeed
 
-    if keysDown[KEY_W, false]:
-        camera.position += camera.front * 0.1f
-    if keysDown[KEY_S, false]:
-        camera.position -= camera.front * 0.1f
-    if keysDown[KEY_D, false]:
-        camera.position += cross(camera.front, camera.top) * 0.1f
-    if keysDown[KEY_A, false]:
-        camera.position -= cross(camera.front, camera.top) * 0.1f
-    if keysDown[KEY_SPACE, false]:
-        camera.position += camera.top * 0.1f
-    if keysDown[KEY_LEFT_SHIFT, false]:
-        camera.position -= camera.top * 0.1f
-
+proc updateRotation*(control: Control) =
     let
-        realX = mousePos.x
-        realY = -mousePos.y
+        mousePos = twindow.relativeMousePos
 
-    camera.front = calculateFront(pitch = realX.toRadians, yaw = clamp(realY, -89f, 89f).toRadians)
+        increasingY = -mousePos.y
+        increasingX = mousePos.x
+        
+        pitchDegrees = clamp(increasingY, -89.99f, 89.99f)
+        
+        pitch = pitchDegrees.toRadians
+        yaw = increasingX.toRadians
 
-proc setCallbacks*() =
-    discard window.setKeyCallback(onKey)
-    discard window.setCursorPosCallback(onMouse)
+    camera.front = calculateFront(pitch, yaw)
+
+proc update*(control: var Control) =
+    if twindow.keysDown[KEY_ESCAPE] and not control.cameraFrozen:
+        control.frozenMousePos = twindow.mousePos
+        # the change in state *must* be after setting the frozen position, because 
+        # otherwise, mousePos returns the center of the window
+        twindow.cursorState = csNormal
+        control.cameraFrozen = true
+    
+    if not control.cameraFrozen:
+        updatePosition(control)
+        updateRotation(control)

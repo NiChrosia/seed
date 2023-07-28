@@ -13,11 +13,9 @@ proc matrix*(camera: Camera3): Mat4 =
     return lookAt(camera.position, camera.position + camera.front, camera.top)
 
 proc calculateFront*(pitch, yaw: float32): Vec3 =
-    ## pitch and yaw should be in radians
-
     let
-        x = cos(pitch) * cos(yaw)
-        y = sin(yaw)
-        z = sin(pitch) * cos(yaw)
+        x = cos(yaw) * cos(pitch)
+        y = sin(pitch)
+        z = sin(yaw) * cos(pitch)
 
-    return vec3(x, y, z)
+    return normalize(vec3(x, y, z))
