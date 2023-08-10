@@ -55,6 +55,12 @@ proc updateRotation*(control: Control, camera: var Camera3) =
 
     camera.front = calculateFront(pitch, yaw)
 
+    if mousePos.y < -90f or mousePos.y > 90f:
+        let absoluteMP = twindow.mousePos
+        let rel2abs = twindow.initialMousePos.y
+
+        twindow.mousePos = vec2(absoluteMP.x, clamp(absoluteMP.y, -89.99f + rel2abs, 89.99f + rel2abs))
+
 proc update*(control: var Control, camera: var Camera3) =
     if twindow.keysDown[KEY_ESCAPE] and not control.cameraFrozen:
         control.frozenMousePos = twindow.mousePos

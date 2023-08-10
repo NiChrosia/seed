@@ -9,6 +9,7 @@ type
         modelBuffer: ptr Ssbo
         atlas: ptr Atlas
 
+        queue: seq[Vertex]
         triangles: GLint
 
     Vertex = object
@@ -59,6 +60,13 @@ proc transformVertices(batch: var PolyBatch, poss: openArray[Vec3], texture: str
 
         result.add(Vertex(position: poss[i], texCoords: tc, modelIndex: mi, tint: tint))
 
+proc flush*(batch: var PolyBatch) =
+    if batch.queue.len <= 0:
+        return
+
+    batch.vertices.add(sizeof(Vertex) * batch.queue.len, unsafeAddr batch.queue[0])
+    batch.queue.setLen(0)
+
 # user-facing API
 proc rect*(batch: var PolyBatch, texture: string, tint: Vec4, a, b: Vec2, model: Mat4) =
     let positions = [
@@ -68,7 +76,7 @@ proc rect*(batch: var PolyBatch, texture: string, tint: Vec4, a, b: Vec2, model:
         vec3(b.x, a.y, 0f),
     ]
 
-    let tcs {.global.} = [
+    const tcs = [
         vec2(1f, -1f),
         vec2(1f, 1f),
         vec2(-1f, 1f),
@@ -76,12 +84,10 @@ proc rect*(batch: var PolyBatch, texture: string, tint: Vec4, a, b: Vec2, model:
     ]
 
     let vertices = batch.transformVertices(positions, texture, tcs, tint, model)
-    var mesh: seq[Vertex]
 
     for i in [0, 1, 2, 2, 3, 0]:
-        mesh.add(vertices[i])
+        batch.queue.add(vertices[i])
 
-    batch.vertices.add(sizeof(Vertex) * mesh.len, unsafeAddr mesh[0])
     batch.triangles += 2
 
 proc poly*(batch: var PolyBatch, numVertices: int, tint: Vec4, radius: float, model: Mat4) =
@@ -105,16 +111,9 @@ proc poly*(batch: var PolyBatch, numVertices: int, tint: Vec4, radius: float, mo
     vertices.add(Vertex(position: vec3(), texCoords: tc, modelIndex: mi, tint: tint))
 
     # apply fan triangulation to vertices
-    var mesh: seq[Vertex]
-
     for i in 0 ..< (vertices.len - 1):
-        mesh.add(vertices[vertices.high])
-        mesh.add(vertices[i])
-        mesh.add(vertices[(i + 1) mod (vertices.len - 1)])
+        batch.queue.add(vertices[vertices.high])
+        batch.queue.add(vertices[i])
+        batch.queue.add(vertices[(i + 1) mod (vertices.len - 1)])
 
-    # send to GPU
-    
-    # todo: do this kind of thing right before each
-    # frame, to absolutely minimize the latency
-    batch.vertices.add(sizeof(Vertex) * mesh.len, unsafeAddr mesh[0])
     batch.triangles += GLint(numVertices)

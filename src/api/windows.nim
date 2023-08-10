@@ -9,6 +9,7 @@ type
         window*: Window
         size*: IVec2
 
+        initialMousePos*: Vec2
         keysDown*: Table[int, bool]
 
         onKey*: proc(key, scancode, action, mods: cint)
@@ -85,14 +86,13 @@ proc mousePos*(twindow: TrackingWindow): Vec2 =
 
     return vec2(x, y)
 
-proc relativeMousePos*(twindow: TrackingWindow): Vec2 =
+proc relativeMousePos*(twindow: var TrackingWindow): Vec2 =
     let current = twindow.mousePos
-    var initial {.global.}: Vec2
     
     once:
-        initial = current
+        twindow.initialMousePos = current
     
-    return current - initial
+    return current - twindow.initialMousePos
 
 proc `mousePos=`*(twindow: var TrackingWindow, pos: Vec2) =
     setCursorPos(twindow.window, cdouble(pos.x), cdouble(pos.y))

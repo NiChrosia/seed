@@ -21,6 +21,8 @@ while not twindow.shouldClose:
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
     control.update(camera)
+
+    renderer3.polyBatch.flush()
     renderer3.draw(camera)
 
     twindow.window.swapBuffers()
