@@ -1,58 +1,56 @@
 import ../api/gl/[textures, shaders, ssbos, uniforms], ../api/rendering/[atlases, cameras], "."/[state], drawers/[polybatches], ../assets
 import opengl, vmath
 
-var
-    program: GLuint
-    atlasTexture: GLuint
+type
+    Renderer3* = object
+        program: GLuint
+        atlasTexture: GLuint
 
-    modelBuffer: Ssbo
-    polyBatch*: PolyBatch
+        modelBuffer: Ssbo
+        polyBatch*: PolyBatch
 
-proc setup*() =
+proc init*(_: typedesc[Renderer3]): Renderer3 =
     block shaderSetup:
         let vs = glCreateShader(GL_VERTEX_SHADER)
         let fs = glCreateShader(GL_FRAGMENT_SHADER)
-        program = glCreateProgram()
+        result.program = glCreateProgram()
 
         vs.compile(getAsset("assets/shaders/main.vs"))
         fs.compile(getAsset("assets/shaders/main.fs"))
 
-        glAttachShader(program, vs)
-        glAttachShader(program, fs)
+        glAttachShader(result.program, vs)
+        glAttachShader(result.program, fs)
 
-        program.link()
+        result.program.link()
 
     block atlasSetup:
         atlas = Atlas.setup(4096)
         var atlasImage = atlas.image
 
-        atlasTexture = createTexture(GL_TEXTURE_2D)
-        atlasTexture.wrap2(GL_CLAMP_TO_EDGE)
-        atlasTexture.filter2(GL_LINEAR)
+        result.atlasTexture = createTexture(GL_TEXTURE_2D)
+        result.atlasTexture.wrap2(GL_CLAMP_TO_EDGE)
+        result.atlasTexture.filter2(GL_LINEAR)
 
-        glTextureStorage2D(atlasTexture, 1, GL_RGBA8, 4096, 4096)
-        glTextureSubImage2D(atlasTexture, 0, 0, 0, 4096, 4096, GL_RGBA, GL_UNSIGNED_BYTE, addr atlasImage.data[0])
+        glTextureStorage2D(result.atlasTexture, 1, GL_RGBA8, 4096, 4096)
+        glTextureSubImage2D(result.atlasTexture, 0, 0, 0, 4096, 4096, GL_RGBA, GL_UNSIGNED_BYTE, addr atlasImage.data[0])
         # uniforms
         let projMatrix = perspective(90f, float32(twindow.size.x) / float32(twindow.size.y), 0.1f, 1000f)
-        program.setMat4("proj", projMatrix)
+        result.program.setMat4("proj", projMatrix)
 
-        glUseProgram(program)
+        glUseProgram(result.program)
 
-        glBindTextureUnit(0, atlasTexture)
+        glBindTextureUnit(0, result.atlasTexture)
 
     # ubo
-    modelBuffer = Ssbo.init(GL_DYNAMIC_DRAW, 0)
-    modelBuffer.attach(program, "Models")
+    result.modelBuffer = Ssbo.init(GL_DYNAMIC_DRAW, 0)
+    result.modelBuffer.attach(result.program, "Models")
 
-    polyBatch = PolyBatch.init(addr atlas, addr modelBuffer)
-    
-    # camera
-    camera = Camera3.init(position = vec3(-5f, 0f, 0f))
+    result.polyBatch = PolyBatch.init(addr atlas, addr result.modelBuffer)
 
-proc draw*() =
-    program.setMat4("view", camera.matrix)
+proc draw*(renderer: Renderer3, camera: Camera3) =
+    renderer.program.setMat4("view", camera.matrix)
 
-    glUseProgram(program)
+    glUseProgram(renderer.program)
 
     # drawers
-    polyBatch.draw()
+    renderer.polyBatch.draw()

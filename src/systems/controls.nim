@@ -1,5 +1,5 @@
 import tables
-import ../api/rendering/[cameras], "."/[state, windows]
+import ../api/windows, ../api/rendering/[cameras], "."/[state]
 import staticglfw, vmath
 
 type
@@ -24,7 +24,7 @@ proc init*(_: typedesc[Control], cameraSpeed: float): Control =
     twindow.onClick = onClick
     twindow.cursorState = csDisabled
 
-proc updatePosition*(control: Control) =
+proc updatePosition*(control: Control, camera: var Camera3) =
     template down(key: cint): bool =
         twindow.keysDown[key]
 
@@ -41,7 +41,7 @@ proc updatePosition*(control: Control) =
     if down KEY_CAPS_LOCK:
         camera.position -= camera.top * control.cameraSpeed
 
-proc updateRotation*(control: Control) =
+proc updateRotation*(control: Control, camera: var Camera3) =
     let
         mousePos = twindow.relativeMousePos
 
@@ -55,7 +55,7 @@ proc updateRotation*(control: Control) =
 
     camera.front = calculateFront(pitch, yaw)
 
-proc update*(control: var Control) =
+proc update*(control: var Control, camera: var Camera3) =
     if twindow.keysDown[KEY_ESCAPE] and not control.cameraFrozen:
         control.frozenMousePos = twindow.mousePos
         # the change in state *must* be after setting the frozen position, because 
@@ -64,5 +64,5 @@ proc update*(control: var Control) =
         control.cameraFrozen = true
     
     if not control.cameraFrozen:
-        updatePosition(control)
-        updateRotation(control)
+        updatePosition(control, camera)
+        updateRotation(control, camera)
